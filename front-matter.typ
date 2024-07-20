@@ -1,15 +1,15 @@
 = Danksagung
 
-#lorem(100)
+TBD.
 
 = Acknowledgements
 
-#lorem(100)
+TBD.
 
 = Kurzfassung
 
-#lorem(100)
+TBD.
 
 = Abstract
 
-#lorem(100)
+TBD.

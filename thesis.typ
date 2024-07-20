@@ -1,43 +1,47 @@
-#import "@local/unofficial-tu-wien-thesis:0.0.1": thesis, front-matter, main-matter, back-matter, use-flex-caption
+#import "@local/unofficial-tu-wien-thesis:0.0.1": *
+#import "custom-styles.typ": custom-styles
 
 #show: thesis.with(
   title: (
-    en: "An ode for Lord Ipsum",
-    de: "Eine Ode an Lord Ipsum",
+    en: "T-RACE: Tracing race condition attacks between Ethereum transactions.",
+    de: "T-RACE: Eine Analyse von race condition Angriffen bei Ethereum Transaktionen",
   ),
   subtitle: (:),
   lang: "en",
-  author: (name: "Lord Ipsus", student-number: 11223344),
+  author: (name: "Othmar Lechner", student-number: 11841833),
   advisor: (
-    name: "Darth Ipsus",
-    pre-title: "Univ.Prof.Dr.",
-    post-title: none,
+    name: "Monika di Angelo",
+    pre-title: "Ass.Prof.in Dipl.-Ing.in Mag.a rer.soc.oec. Dr.in techn.",
   ),
-  assitants: ((name: "Ipsinator", pre-title: "Sir"),),
-  curriculum: "Software Engineering & Internet Computing",
-  keywords: ("Pizza"),
+  assistants: ((name: "Gernot Salzer", pre-title: "Ao.Univ.Prof. Dr."),),
+  curriculum: (en: "Software Engineering & Internet Computing", de: "Software Engineering & Internet Computing"),
+  keywords: ("Ethereum", "TOD", "Frontrunning"),
   date: datetime.today(),
 )
 
-#show: use-flex-caption
-#show: front-matter
+#show: flex-caption-styles
+#show: toc-styles
+#show: general-styles
+#show: front-matter-styles
 
-// set the default "supplement" for all "algorithm" figures. The supplement is shown when referencing it (e.g. @my-alg)
-#show figure.where(kind: "algorithm"): set figure(supplement: "Algorithm")
+#show: custom-styles
 
 #include "front-matter.typ"
 #outline()
 
-#show: main-matter
+#show: main-matter-styles
+#show: page-header-styles
 
 #include "main.typ"
 
-#show: back-matter
+#show: back-matter-styles
+#set page(header: none)
 
 #outline(title: "List of Figures", target: figure.where(kind: image))
 #outline(title: "List of Tables", target: figure.where(kind: table))
-#outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
 
 #bibliography("refs.bib")
+
+#show: appendix-styles
 
 #include "appendix.typ"
