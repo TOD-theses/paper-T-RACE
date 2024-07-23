@@ -212,7 +212,7 @@ We can conclude, that @zhang_combatting_2023 executes all intermediary transacti
 In the file `displacement.py`, they replay the normal execution order at the lines 154-155, and the reverse execution order at the lines 158-159. They only execute $T_A$ and $T_V$ (in normal and reverse order), but do not execute any intermediate transactions.
 
 === Block environments
-When we analyze a pair of transactoins $(T_A , T_B)$, it can be, that these are not part of the same block. The execution of these transactoins can depend on the block environment they are executed in, for instance if they access the current block number. Thus, executing $T_A$ or $T_B$ in a different block environment than on the blockchain may alter their behaviour. From our intuitive TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
+When we analyze a pair of transactions $(T_A , T_B)$, it can be, that these are not part of the same block. The execution of these transactions can depend on the block environment they are executed in, for instance if they access the current block number. Thus, executing $T_A$ or $T_B$ in a different block environment than on the blockchain may alter their behaviour. From our intuitive TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
 
 #heading(level: 4, numbering: none)[Code analysis of @zhang_combatting_2023]
 The block environment used to execute all transactions is contained in `ar.VmContext` and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment.
@@ -259,7 +259,7 @@ To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world 
 If we want to check n transactions for TOD, we could execute all n transactions to obtain their state changes. There are $frac(n^2 - n, 2)$ transaction pairs, thus if we wanted to test each pair for TOD we would end up with a total of $n + frac(n^2 - n, 2) = frac(n^2 + n, 2)$ transaction executions. Similar to @torres_frontrunner_2021 and @zhang_combatting_2023, we can filter irrelevant transactions pairs to drastically reduce the search space.
 
 #heading("Similarity to blockchain executions", level: 4, numbering: none)
-With our definition, the state change $Delta_(T_B)$ from the normal execution is equivalent to the state change that happend on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $sigma_(X_n)$ and only modify the relevant parts for our analysis. Furthermore, we prevent effects from block environment changes by using the same one as on the blockchain.
+With our definition, the state change $Delta_(T_B)$ from the normal execution is equivalent to the state change that happened on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $sigma_(X_n)$ and only modify the relevant parts for our analysis. Furthermore, we prevent effects from block environment changes by using the same one as on the blockchain.
 
 This contrasts other implementations, where transactions are executed in different block environments than originally, are executed based on a different starting state or ignore the impact of intermediary transactions. All three cases can alter the execution of $T_A$ and $T_B$, such that the result is not closely related to the blockchain anymore.
 
@@ -291,7 +291,7 @@ We define the state collisions of two transactions as:
 
 $ colls(T_A , T_B) = (W_(T_A) sect R_(T_B)) union (W_(T_A) sect W_(T_B)) $
 
-With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. We do not include $R_(T_A) sect W_(T_B)$, as we also did not include read-write TOD in our TOD defintion.
+With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. We do not include $R_(T_A) sect W_(T_B)$, as we also did not include read-write TOD in our TOD definition.
 
 == TOD candidates
 We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) eq.not nothing$ as a TOD candidate.
@@ -372,7 +372,7 @@ In @tab:state_writing_instructions we see instructions that can modify the world
   ]
 ]
 === Causes without code execution
-Some state accesses and modifications are inherent to transaction execution. To pay for the transaction fees, the balance of the sender is accessed and modified. When a transaction transfers some Wei from the sender to the recipient, it als modifies the recipient’s balance. To check if the recipient is a contract account, the transaction also needs to access the code of the recipient. And finally, it also verfies the sender’s nonce and increments it by one. @wood_ethereum_2024[p.9]
+Some state accesses and modifications are inherent to transaction execution. To pay for the transaction fees, the balance of the sender is accessed and modified. When a transaction transfers some Wei from the sender to the recipient, it also modifies the recipient’s balance. To check if the recipient is a contract account, the transaction also needs to access the code of the recipient. And finally, it also verifies the sender’s nonce and increments it by one. @wood_ethereum_2024[p.9]
 
 === Relevant collisions for attacks
 <sec:relevant-collisions>
@@ -384,7 +384,7 @@ The idea of an TOD attack is, that an attacker impacts the execution of some tra
 
 Let us first focus on the instructions, that could modify the accessed codes and nonces in $A$, namely `SELFDESTRUCT`, `CREATE` and `CREATE2`. Since the EIP-6780 update@ballet_eip-6780_2023, `SELFDESTRUCT` only destroys a contract if the contract was created in the same transaction. Therefore, `SELFDESTRUCT` can only modify a code and nonce within the same transaction, but cannot be used to attack an already submitted transaction $T_B$. The instructions to create a new contract, `CREATE` and `CREATE2`, both use the sender’s address for the calculation of the new contract account’s address, and both fail when there is already a contract at the target address. @wood_ethereum_2024[p.11] Therefore, we can only modify the code if the contract did not exist previously. If this is the case, it is unlikely that $T_B$ would make a transaction to exactly this attacker-related address. Therefore, none of these instructions is usable for a TOD attack via code or nonce collisions. A similar argument can be made about contract creation directly via the transaction and some init code.
 
-Apart from instructions, the nonces of an EOA can also be increased by transactions themselves. The only way that $T_B$ can access the nonce of an EOA is through the gas cost calculation when sending Ether to this address. The calculation returns a different cost if the recipient already exists, or has to be newly created. Thus, an attack would be that $T_B$ transfers some Ether to an attacker controlled EOA address $a$ which does not yet exist, and the attacker creates the account at addres $a$ in $T_A$, which slightly increases the gas cost for $T_B$. Again, this attack seems negligible.
+Apart from instructions, the nonces of an EOA can also be increased by transactions themselves. The only way that $T_B$ can access the nonce of an EOA is through the gas cost calculation when sending Ether to this address. The calculation returns a different cost if the recipient already exists, or has to be newly created. Thus, an attack would be that $T_B$ transfers some Ether to an attacker controlled EOA address $a$ which does not yet exist, and the attacker creates the account at address $a$ in $T_A$, which slightly increases the gas cost for $T_B$. Again, this attack seems negligible.
 
 Therefore, the remaining attack vectors are `SSTORE`, to modify the storage of an account, and `CALL`, `CALLCODE`, `SELFDESTRUCT` and Ether transfer transactions, to modify the balance of an account.
 
@@ -565,7 +565,7 @@ Note, that this does not directly imply, that "Same-value collision" filters out
 After applying the filters, 7864 transactions are part of at least one TOD candidate. This is, 46.8% of all transactions, that we mark as potentially TOD with some other transaction. Only 2381 of these transactions are part of exactly one TOD candidate. On the other end, there exists one transaction that is part of 22 TOD candidates.
 
 === Block distance
-In @fig:tod_block_dist we can see, that most TOD candidates are within the same block. Morevoer, the further two transactions are apart, the less likely we include them as a TOD candidate. A reason for this could be, that having many intermediary transactions makes it more likely to be filtered by our "Indirect dependency" filter. Nonetheless, we can conclude that when using our filters, the block window could be reduced even further without missing many TOD candidates.
+In @fig:tod_block_dist we can see, that most TOD candidates are within the same block. Moreover, the further two transactions are apart, the less likely we include them as a TOD candidate. A reason for this could be, that having many intermediary transactions makes it more likely to be filtered by our "Indirect dependency" filter. Nonetheless, we can conclude that when using our filters, the block window could be reduced even further without missing many TOD candidates.
 
 #figure(
   image("charts/tod_candidates_block_dist.png", width: 80%),
@@ -590,7 +590,7 @@ are responsible for 43.0% of all collisions. In total, the collisions occur in o
 
 One goal of this paper is to create a diverse set of attacks for our benchmark. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are more likely related and do not cover a wide range of attack types. To prevent this, we may filter out duplicate addresses for collisions.
 
-@fig:collsions_address_limit depicts, how many collisions we would get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we would end up with 1472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we would get 3964 collisions. Such a scenario would already reduce the amount of collisions by 73%, while still retaining a sample of 10 collisions for each address, that could cover different types of TOD attacks.
+@fig:collisions_address_limit depicts, how many collisions we would get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we would end up with 1472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we would get 3964 collisions. Such a scenario would already reduce the amount of collisions by 73%, while still retaining a sample of 10 collisions for each address, that could cover different types of TOD attacks.
 
 #figure(
   image("charts/collisions_limited_per_address.png", width: 80%),
@@ -601,7 +601,7 @@ One goal of this paper is to create a diverse set of attacks for our benchmark. 
     [Limit for collisions per address],
   ),
 )
-<fig:collsions_address_limit>
+<fig:collisions_address_limit>
 
 == Deduplication
 TBD.
