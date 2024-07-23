@@ -312,65 +312,57 @@ In @tab:state_reading_instructions we see the instructions, that can access the 
 
 In @tab:state_writing_instructions we see instructions that can modify the world state.
 
-#block[
-  #block[
-    #figure(
-      align(center)[#table(
-          columns: 5,
-          align: (left, center, center, center, center),
-          table.header([Instruction], [Storage], [Balance], [Code], [Nonce]),
-          table.hline(),
-          [`SLOAD`], [$checkmark$], [], [], [],
-          [`BALANCE`], [], [$checkmark$], [], [],
-          [`SELFBALANCE`], [], [$checkmark$], [], [],
-          [`CODESIZE`], [], [], [$checkmark$], [],
-          [`CODECOPY`], [], [], [$checkmark$], [],
-          [`EXTCODECOPY`], [], [], [$checkmark$], [],
-          [`EXTCODESIZE`], [], [], [$checkmark$], [],
-          [`EXTCODEHASH`], [], [], [$checkmark$], [],
-          [`CALL`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`CALLCODE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`STATICCALL`], [], [], [$checkmark$], [],
-          [`DELEGATECALL`], [], [], [$checkmark$], [],
-          [`CREATE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`CREATE2`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`SELFDESTRUCT`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-        )],
-      caption: flex-caption(
-        [Instructions that access state. A checkmark indicates,
-          that the execution of this instruction can depend on this state type.],
-        [State accessing instructions],
-      ),
-      kind: table,
-    )<tab:state_reading_instructions>
+#figure(
+  table(
+    columns: 5,
+    align: (left, center, center, center, center),
+    table.header([Instruction], [Storage], [Balance], [Code], [Nonce]),
+    table.hline(),
+    [`SLOAD`], [$checkmark$], [], [], [],
+    [`BALANCE`], [], [$checkmark$], [], [],
+    [`SELFBALANCE`], [], [$checkmark$], [], [],
+    [`CODESIZE`], [], [], [$checkmark$], [],
+    [`CODECOPY`], [], [], [$checkmark$], [],
+    [`EXTCODECOPY`], [], [], [$checkmark$], [],
+    [`EXTCODESIZE`], [], [], [$checkmark$], [],
+    [`EXTCODEHASH`], [], [], [$checkmark$], [],
+    [`CALL`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`CALLCODE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`STATICCALL`], [], [], [$checkmark$], [],
+    [`DELEGATECALL`], [], [], [$checkmark$], [],
+    [`CREATE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`CREATE2`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`SELFDESTRUCT`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+  ),
+  caption: flex-caption(
+    [Instructions that access state. A checkmark indicates,
+      that the execution of this instruction can depend on this state type.],
+    [State accessing instructions],
+  ),
+  kind: table,
+)<tab:state_reading_instructions>
 
-  ]
-]
-#block[
-  #block[
-    #figure(
-      align(center)[#table(
-          columns: 5,
-          align: (left, center, center, center, center),
-          table.header([Instruction], [Storage], [Balance], [Code], [Nonce]),
-          table.hline(),
-          [`SSTORE`], [$checkmark$], [], [], [],
-          [`CALL`], [], [$checkmark$], [], [],
-          [`CALLCODE`], [], [$checkmark$], [], [],
-          [`CREATE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`CREATE2`], [], [$checkmark$], [$checkmark$], [$checkmark$],
-          [`SELFDESTRUCT`], [$checkmark$], [$checkmark$], [$checkmark$], [$checkmark$],
-        )],
-      caption: flex-caption(
-        [Instructions that modify state. A checkmark indicates,
-          that the execution of this instruction can modify this state type.],
-        [State modifying instructions],
-      ),
-      kind: table,
-    )
-    <tab:state_writing_instructions>
-  ]
-]
+#figure(
+  table(
+    columns: 5,
+    align: (left, center, center, center, center),
+    table.header([Instruction], [Storage], [Balance], [Code], [Nonce]),
+    table.hline(),
+    [`SSTORE`], [$checkmark$], [], [], [],
+    [`CALL`], [], [$checkmark$], [], [],
+    [`CALLCODE`], [], [$checkmark$], [], [],
+    [`CREATE`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`CREATE2`], [], [$checkmark$], [$checkmark$], [$checkmark$],
+    [`SELFDESTRUCT`], [$checkmark$], [$checkmark$], [$checkmark$], [$checkmark$],
+  ),
+  caption: flex-caption(
+    [Instructions that modify state. A checkmark indicates,
+      that the execution of this instruction can modify this state type.],
+    [State modifying instructions],
+  ),
+  kind: table,
+) <tab:state_writing_instructions>
+
 === Causes without code execution
 Some state accesses and modifications are inherent to transaction execution. To pay for the transaction fees, the balance of the sender is accessed and modified. When a transaction transfers some Wei from the sender to the recipient, it also modifies the recipient’s balance. To check if the recipient is a contract account, the transaction also needs to access the code of the recipient. And finally, it also verifies the sender’s nonce and increments it by one. @wood_ethereum_2024[p.9]
 
@@ -419,31 +411,26 @@ A summary of the filters is given in @tab:tod_candidate_filters and more detaile
 
 The "Block windows", "Same senders" and "Recipient Ether transfer" filters have already been used in @zhang_erebus-redgiant_2023. The filters "Nonce and code collision" and "Indirect dependency" followed directly from our previous theoretical arguments. Further, we also applied an iterative approach, where we searched for TOD candidates in a sample block range and manually analyzed if some of these TOD candidates could be filtered. This led us to the "Same-value collisions" and the "Block validators" filter.
 
-#block[
-  #block[
-    #figure(
-      align(center)[#table(
-          columns: 2,
-          align: (left, left),
-          table.header([Filter name], [Description of filter criteria]),
-          table.hline(),
-          [Same-value collision], [Only take collisions where $T_A$ writes exactly the value, that is read or overwritten by TB.],
-          [Block windows], [Drop transactions that are 25 or more blocks apart.],
-          [Block validators], [Drop collisions on the block validator’s balance.],
-          [Nonce and code collision], [Drop nonce and code collisions.],
-          [Indirect dependency], [Drop TOD candidates with an indirect dependency. e.g. if TOD candidates $(T_A , T_X )$ and $(T_X , T_B)$ exist.],
-          [Same senders], [Drop if $T_A$ and $T_B$ are from the same sender.],
-          [Recipient Ether transfer], [Drop if $T_B$ does not execute code.],
-        )],
-      caption: flex-caption(
-        [TOD candidate filters sorted by usage order. When a filter describes the removal of collisions, the TOD candidates will be updated accordingly.],
-        [TOD candidate filters],
-      ),
-      kind: table,
-    )
-    <tab:tod_candidate_filters>
-  ]
-]
+#figure(
+  table(
+    columns: 2,
+    align: (left, left),
+    table.header([Filter name], [Description of filter criteria]),
+    table.hline(),
+    [Same-value collision], [Only take collisions where $T_A$ writes exactly the value, that is read or overwritten by TB.],
+    [Block windows], [Drop transactions that are 25 or more blocks apart.],
+    [Block validators], [Drop collisions on the block validator’s balance.],
+    [Nonce and code collision], [Drop nonce and code collisions.],
+    [Indirect dependency], [Drop TOD candidates with an indirect dependency. e.g. if TOD candidates $(T_A , T_X )$ and $(T_X , T_B)$ exist.],
+    [Same senders], [Drop if $T_A$ and $T_B$ are from the same sender.],
+    [Recipient Ether transfer], [Drop if $T_B$ does not execute code.],
+  ),
+  caption: flex-caption(
+    [TOD candidate filters sorted by usage order. When a filter describes the removal of collisions, the TOD candidates will be updated accordingly.],
+    [TOD candidate filters],
+  ),
+  kind: table,
+) <tab:tod_candidate_filters>
 
 === Filters
 
@@ -534,33 +521,30 @@ In @tab:experiment_filters we can see the number of TOD candidates before and af
 
 Note, that this does not directly imply, that "Same-value collision" filters out more TOD candidates than "Block windows", as they operated on different sets of TOD candidates. Even if "Block windows" would filter out every TOD candidate, this would be less than "Same-value collision" did, because of the order of filter application.
 
-#block[
-  #block[
-    #figure(
-      align(center)[#table(
-          columns: 3,
-          align: (left, right, right),
-          table.header([Filter name], [TOD candidates after filtering], [Filtered TOD candidates]),
-          table.hline(),
-          [(unfiltered)], [(lower bound) 63,178,557], [],
-          [Same-value collision], [56,663], [(lower bound) 63,121,894],
-          [Block windows], [53,184], [3,479],
-          [Block validators], [39,899], [13,285],
-          [Nonce collision], [23,284], [16,615],
-          [Code collision], [23,265], [19],
-          [Indirect dependency], [16,235], [7,030],
-          [Same senders], [9,940], [6,295],
-          [Recipient Ether transfer], [8,127], [1,813],
-        )],
-      caption: flex-caption(
-        [This table shows the application of all filters used to reduce the number of TOD candidates. Filters were applied from top to bottom and each row shows how many TOD candidates remained and were filtered. The unfiltered value is a lower bound, as we only calculated this number afterwards, and the calculation does not include write-write collisions.],
-        [TOD candidate filters evaluation],
-      ),
-      kind: table,
-    )
-    <tab:experiment_filters>
-  ]
-]
+#figure(
+  table(
+    columns: 3,
+    align: (left, right, right),
+    table.header([Filter name], [TOD candidates after filtering], [Filtered TOD candidates]),
+    table.hline(),
+    [(unfiltered)], [(lower bound) 63,178,557], [],
+    [Same-value collision], [56,663], [(lower bound) 63,121,894],
+    [Block windows], [53,184], [3,479],
+    [Block validators], [39,899], [13,285],
+    [Nonce collision], [23,284], [16,615],
+    [Code collision], [23,265], [19],
+    [Indirect dependency], [16,235], [7,030],
+    [Same senders], [9,940], [6,295],
+    [Recipient Ether transfer], [8,127], [1,813],
+  ),
+  caption: flex-caption(
+    [This table shows the application of all filters used to reduce the number of TOD candidates. Filters were applied from top to bottom and each row shows how many TOD candidates remained and were filtered. The unfiltered value is a lower bound, as we only calculated this number afterwards, and the calculation does not include write-write collisions.],
+    [TOD candidate filters evaluation],
+  ),
+  kind: table,
+)
+<tab:experiment_filters>
+
 === Transactions
 After applying the filters, 7864 transactions are part of at least one TOD candidate. This is, 46.8% of all transactions, that we mark as potentially TOD with some other transaction. Only 2381 of these transactions are part of exactly one TOD candidate. On the other end, there exists one transaction that is part of 22 TOD candidates.
 
@@ -588,9 +572,9 @@ and
 #link("https://etherscan.io/address/0xf938346d7117534222b48d09325a6b8162b3a9e7")[CHOPPY]]
 are responsible for 43.0% of all collisions. In total, the collisions occur in only 1472 different account states.
 
-One goal of this paper is to create a diverse set of attacks for our benchmark. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are more likely related and do not cover a wide range of attack types. To prevent this, we may filter out duplicate addresses for collisions.
-
 @fig:collisions_address_limit depicts, how many collisions we would get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we would end up with 1472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we would get 3964 collisions. Such a scenario would already reduce the amount of collisions by 73%, while still retaining a sample of 10 collisions for each address, that could cover different types of TOD attacks.
+
+One goal of this paper is to create a diverse set of attacks for our benchmark. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are more likely related and do not cover a wide range of attack types. To prevent this, in @sec:deduplication we define additional deduplication filters.
 
 #figure(
   image("charts/collisions_limited_per_address.png", width: 80%),
@@ -603,18 +587,53 @@ One goal of this paper is to create a diverse set of attacks for our benchmark. 
 )
 <fig:collisions_address_limit>
 
-== Deduplication
+== Deduplication <sec:deduplication>
+
+To reduce the prevalence of specific contracts in the TOD candidates, we randomly pick 10 collisions from each address and drop the rest from our analysis. We apply three different grouping mechanisms for this:
+
+In a first step we group the collisions by the address where they happened, and choose 10 from this subset. For instance, if many transactions access the balance and code of the same address, we would only retain 10 of these accesses.
+
+Then we consider collisions at addresses that contain code. In Ethereum, the same code can be deployed to different addresses. As attacks for contracts with the same code are likely similar, we limit the number of collisions to 10 for each contract code. To do so, we group the collisions by the code hash and select 10 collisions from this subset.
+
+Finally, instead of matching for exactly the same code at different addresses, we will also group similar codes together, and then limit the collisions. We use the grouping mechanism from @diangelo_evolution_2024, where they compute a "skeleton" for each code by removing the metadata and the values for `PUSH` instructions. They have shown, that codes with the same skeleton mostly yield the same vulnerability detection results. Therefore, we will also group by each code skeleton and only take 10 collisions for each group.
+
+=== Results
+
+We ran the same experiment as in the previous section, but now with the additional deduplication filters. In @tab:experiment_deduplication, we see that from the initial 8,127 TOD candidates, only 2,320 remained after removing duplicates.
+
+#figure(
+  table(
+    columns: 3,
+    align: (left, right, right),
+    table.header([Filter name], [TOD candidates after filtering], [Filtered TOD candidates]),
+    table.hline(),
+    [(previous filters)], [8,127], [],
+    [Limited collisions per address], [2,645], [5,482],
+    [Limited collisions per code hash], [2,435], [210],
+    [Limited collisions per skeleton], [2,320], [115],
+  ),
+  caption: flex-caption(
+    [This table shows the application of the deduplication filters. We start with the TOD candidates from @tab:experiment_filters and then apply each deduplication filter.],
+    [TOD candidate deduplication evaluation],
+  ),
+  kind: table,
+)
+<tab:experiment_deduplication>
+
+= TOD detection
 TBD.
 
-#todo("ethutils GPL license")
-
 = Trace analysis
+TBD.
+
 = TOD Attack results
 Overall findings of the TOD attack mining and analysis.
 
 = Tool benchmarking
+TBD.
 == Systematic Literature Review
 == Result
+
 = Data availability
 TBD.
 
