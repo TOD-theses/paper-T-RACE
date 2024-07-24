@@ -1,9 +1,7 @@
-#let todo(content) = {
-  text("[TODO: " + content + "]", fill: red)
-}
-
+#import "@preview/dashy-todo:0.0.1": todo
 #import "@preview/fletcher:0.5.1" as fletcher: diagram, node, edge
 #import "@preview/ctheorems:1.1.2": *
+
 #show: thmrules.with(qed-symbol: $square$)
 #let theorem = thmbox("theorem", "Theorem")
 #let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em))
