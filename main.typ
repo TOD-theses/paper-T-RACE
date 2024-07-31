@@ -87,8 +87,6 @@ In Ethereum, transaction execution is deterministic. @wood_ethereum_2024[p.9] Tr
 
 We denote a transaction execution as $sigma arrow.r^T sigma prime$, implicitly letting the block environment correspond to the transaction’s block. Furthermore, we denote the state change by a transaction $T$ as $Delta_T$, with $pre(Delta_T) = sigma$ being the world state before execution and $post(Delta sigma_T) = sigma prime$ the world state after the execution of $T$.
 
-#change[$Delta_T$ definition is now about relative changes.]
-
 For two state changes $Delta_T_A$ and $Delta_T_B$, we say that $Delta_T_A = Delta_T_B$ if the relative change of the values is equal. Formally, let $Delta_T_A = Delta_T_B$ be true if and only if:
 
 $
@@ -269,8 +267,6 @@ This contrasts other implementations, where transactions are executed in differe
 === Definition weaknesses
 <sec:weaknesses>
 
-#change[Added focus on impact on $T_B$ section]
-
 ==== Focus on impact on $T_B$ <sec:weakness-focus-on-tb>
 
 In some cases, the transaction order can impact the execution of the individual transactions, but does not affect the overall result of executing both transactions. Our definition does not consider the execution of $T_A$ after $T_B$ in the reverse order, which could lead to incorrect TOD classification.
@@ -280,8 +276,6 @@ For example, consider the case where both $T_A$ and $T_B$ multiply a value in a 
 Note, that our definition is robust against the cases, where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equality uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B = Delta_(T_B prime)$.
 
 ==== Indirect dependencies
-
-#change[Rephrasing of this paragraph]
 
 An intuitive interpretation of our definition would be, that we compare $T_A arrow.r T_(X_i) arrow.r T_B$ with $T_(X_i) arrow.r T_B$, i.e. reckon what would have happened if $T_A$ was not executed. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, removal of $T_A$ could also impact the intermediary transactions and thus indirectly change the behaviour of $T_B$. Then we would not know if $T_A$ directly impacted $T_B$, or only through some interplay with intermediary transactions. Therefore, our exclusion of interactions between $T_A$ and $T_(X_i)$ may be desirable, however it can lead to unexpected results if one is not aware of this.
 
@@ -387,8 +381,6 @@ Some state accesses and modifications are inherent to transaction execution. To 
 The previous sections list possible ways to access and modify the world state. Many previous works have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important. @wang_etherfuzz_2022@kolluri_exploiting_2019@li_finding_2019@luu_making_2016@tsankov_securify_2018@munir_todler_2023 Here, we try to argue, why only storage and balance collisions are relevant for TOD attacks and code and nonce collisions can be neglected.
 
 The idea of an TOD attack is, that an attacker impacts the execution of some transaction $T_B$, by placing a transaction $T_A$ before it. To have some impact, there must be a write-write or write-read collisions between $T_A$ and $T_B$. Therefore, our scenario is that we start from some (vicim) transaction $T_B$ and try to create impactful collisions with a new transaction $T_A$. We assume some set $A$ to be the set of codes and nonces that $T_B$ accesses and writes.
-
-#change[Updated following 2 paragraphs to hopefully be easier to follow]
 
 Let us first focus on the instructions, that could modify the accessed codes and nonces in $A$, namely `SELFDESTRUCT`, `CREATE` and `CREATE2`. Since the EIP-6780 update@ballet_eip-6780_2023, `SELFDESTRUCT` only destroys a contract if the contract was created in the same transaction. Therefore, `SELFDESTRUCT` can only modify a code and nonce within the same transaction, but cannot be used to attack an already submitted transaction $T_B$. The instructions to create a new contract, `CREATE` and `CREATE2`, both fail when there is already a contract at the target address. @wood_ethereum_2024[p.11] Therefore, we can only modify the code if the contract previously did not exist. In the case, that $T_B$ interacted with some address $a$ that contains no code, the attacker would need `CREATE` or `CREATE2` to create a contract at the address $a$ to have a collision. This is not possible for arbitrary addresses, as the address computation uses the sender's address as an input to a hash function in both cases.@wood_ethereum_2024[p.11] A similar argument can be made about contract creation directly via the transaction and some init code.
 
@@ -607,8 +599,6 @@ One goal of this paper is to create a diverse set of attacks for our benchmark. 
 
 == Deduplication <sec:deduplication>
 
-#change[Added deduplication section]
-
 To reduce the prevalence of specific contracts in the TOD candidates, we randomly pick 10 collisions of each contract and drop the rest from our analysis. We apply three different mechanisms to group similar contracts:
 
 Firstly, we group the collisions by the address where they happened, and randomly select 10 collisions from each group. For instance, if many transactions access the balance and code of the same address, we would only retain 10 of these accesses.
@@ -641,8 +631,6 @@ We ran the same experiment as in the previous section, but now with the addition
 <tab:experiment_deduplication>
 
 = TOD detection
-
-#change[Added TOD detection section + corresponding appendix]
 
 After mining a list of TOD candidates, we now check, which of them are actually TOD.
 
