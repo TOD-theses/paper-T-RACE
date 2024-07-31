@@ -156,7 +156,7 @@ In @torres_frontrunner_2021 the authors do not provide a formal definition of TO
 
 Similar to our intuitive TOD definition, they execute $T_A$ and $T_V$ in different orders and check if it affects the result. In their case, they only check the number of executed instruction, instead of the resulting state. This would miss attacks where the same instructions were executed, but the operands for these instructions in the second transaction changed because of the first transaction.
 
-In @zhang_combatting_2023, they define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to the $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a arrow.r T_v arrow.r T_a^p$ and $T_v arrow.r T_a arrow.r T_a^p$. They monitor the transactions to check if the execution order impacts financial gains, which we will discuss later in more detail. #todo("Reference the frontrunning sections, when it's written")
+In @zhang_combatting_2023, they define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to the $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a arrow.r T_v arrow.r T_a^p$ and $T_v arrow.r T_a arrow.r T_a^p$. They monitor the transactions to check if the execution order impacts financial gains, which we will discuss later in more detail.#todo[Reference frontrunning section]
 
 We note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. As we always execute $T_a^p$ last, and transaction execution is deterministic, it only gives a different result if the execution of $T_a$ and $T_v$ gave a different result. Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD.
 
@@ -191,8 +191,6 @@ In @zhang_combatting_2023, this impact of the intermediary transactions is ackno
 ]
 
 Nonetheless, it is not clear, which of the above scenarios they applied for their analysis. The other work, @torres_frontrunner_2021, does not mention this issue at all.
-
-#todo("Consider to move the code analysis to an appendix")
 
 ==== Code analysis of @zhang_combatting_2023
 
@@ -389,8 +387,7 @@ Some state accesses and modifications are inherent to transaction execution. To 
 === Relevant collisions for attacks
 <sec:relevant-collisions>
 
-#todo("Reference papers, that only used storage and balance without arguing why")
-The previous sections list possible ways to access and modify the world state. Many previous studies have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important. Here, we try to argue, why only storage and balance collisions are relevant for TOD attacks and code and nonce collisions can be neglected.
+The previous sections list possible ways to access and modify the world state. Many previous works have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important. @wang_etherfuzz_2022@kolluri_exploiting_2019@li_finding_2019@luu_making_2016@tsankov_securify_2018@munir_todler_2023 Here, we try to argue, why only storage and balance collisions are relevant for TOD attacks and code and nonce collisions can be neglected.
 
 The idea of an TOD attack is, that an attacker impacts the execution of some transaction $T_B$, by placing a transaction $T_A$ before it. To have some impact, there must be a write-write or write-read collisions between $T_A$ and $T_B$. Therefore, our scenario is that we start from some (vicim) transaction $T_B$ and try to create impactful collisions with a new transaction $T_A$. We assume some set $A$ to be the set of codes and nonces that $T_B$ accesses and writes.
 
@@ -410,7 +407,7 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
 
-#todo("Check reference when frontrunning sections are written")
+#todo[Reference frontrunning section]
 Given this property, it is clear that TOD alone is not a useful attack indicator, else we would say that every transaction has been attacked. In the following, we provide some more restrictive definitions.
 
 = TOD candidate mining <cha:mining>
