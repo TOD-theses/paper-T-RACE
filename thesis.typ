@@ -1,8 +1,9 @@
-#import "@local/unofficial-tu-wien-thesis:0.0.1": *
+#import "@preview/definitely-not-tuw-thesis:0.1.0": *
+#import "@preview/dashy-todo:0.0.1": todo
 #import "custom-styles.typ": custom-styles
-#import "@local/dashy-todo:0.0.1": todo
 
 #show: thesis.with(
+  font: "TeX Gyre Heros",
   title: (
     en: "T-RACE: Tracing race condition attacks between Ethereum transactions.",
     de: "T-RACE: Eine Analyse von race condition Angriffen bei Ethereum Transaktionen",
@@ -30,8 +31,11 @@
 #include "front-matter.typ"
 #outline()
 
+#show figure.where(kind: "algorithm"): set figure(supplement: "Algorithm")
+
 #show: main-matter-styles
 #show: page-header-styles
+#set heading(numbering: "1.1.1.a")
 
 #include "main.typ"
 
@@ -40,6 +44,7 @@
 
 #outline(title: "List of Figures", target: figure.where(kind: image))
 #outline(title: "List of Tables", target: figure.where(kind: table))
+#outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
 
 #todo[For Evolution paper: why page 41-42?]
 

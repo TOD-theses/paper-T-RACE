@@ -1,8 +1,13 @@
-#import "@local/unofficial-tu-wien-thesis:0.0.1": flex-caption
+#import "@preview/definitely-not-tuw-thesis:0.1.0": flex-caption
+#import "@preview/lovelace:0.3.0": *
 #import "utils.typ": *
 
 = Introduction
 TBD.
+
+#figure(caption: flex-caption([Overview#todo[Create an overview chart similar to this one]], [WIP overview chart]))[
+  #image("graphics/components.png")
+]
 
 == Contributions
 - Precise definition of TOD in the context of blockchain transaction
@@ -194,7 +199,8 @@ Nonetheless, it is not clear, which of the above scenarios they applied for thei
 
 #todo("Consider to move the code analysis to an appendix")
 
-#heading(level: 4, numbering: none)[Code analysis of @zhang_combatting_2023]
+==== Code analysis of @zhang_combatting_2023
+
 As shown in their algorithm 1, they take as input all the executed transactions. They use these transactions and their results in the `searchVictimGivenAttack` method, where `ar` represents the attack transaction and result and `vr` represents the victim transaction and result.
 
 For the normal execution order ($T_a arrow.r T_v$), they simply use `ar` and `vr` and pass them to their `CheckOracle` method which then compares the resulting states. As `ar` and `vr` are obtained by executing all transactions, they also include the intermediary transactions for these results (similar to our $sigma arrow.r^(T_A) sigma_A arrow.r^(T_X) sigma_(A X) arrow.r^(T_B) sigma_(A X B)$ case).
@@ -205,25 +211,30 @@ The `SlicePrerequisites` method uses the `hbGraph` built in `StartSession`, whic
 
 We can conclude, that @zhang_combatting_2023 executes all intermediary transactions for the normal order. However, for the reverse order, they only execute intermediary transactions that are also sent by the victim, but do not execute any other intermediary transactions.
 
-#heading(level: 4, numbering: none)[Code analysis of @torres_frontrunner_2021]
+==== Code analysis of @torres_frontrunner_2021
+
 In the file `displacement.py`, they replay the normal execution order at the lines 154-155, and the reverse execution order at the lines 158-159. They only execute $T_A$ and $T_V$ (in normal and reverse order), but do not execute any intermediate transactions.
 
 === Block environments
 When we analyze a pair of transactions $(T_A , T_B)$, it can be, that these are not part of the same block. The execution of these transactions can depend on the block environment they are executed in, for instance if they access the current block number. Thus, executing $T_A$ or $T_B$ in a different block environment than on the blockchain may alter their behaviour. From our intuitive TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
 
-#heading(level: 4, numbering: none)[Code analysis of @zhang_combatting_2023]
+==== Code analysis of @zhang_combatting_2023
+
 The block environment used to execute all transactions is contained in `ar.VmContext` and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment.
 
-#heading(level: 4, numbering: none)[Code analysis of @torres_frontrunner_2021]
+==== Code analysis of @torres_frontrunner_2021
+
 In the file `displacement.py` line 151, we see that the emulator uses the same block environment for both transactions. Therefore, at least one of them will be executed in a different block environment than on the blockchain.
 
 === Initial state $sigma$
 While our preliminary TOD definition specifies that we start with the same $sigma$ in both execution orders, it is up to interpretation which world state $sigma$ is.
 
-#heading(level: 4, numbering: none)[Code analysis of @zhang_combatting_2023]
+==== Code analysis of @zhang_combatting_2023
+
 The initial state used to execute the first transaction is `ar.State`, which corresponds to the state directly before executing $T_a$. This includes all previous transactions of the same block.
 
-#heading(level: 4, numbering: none)[Code analysis of @torres_frontrunner_2021]
+==== Code analysis of @torres_frontrunner_2021
+
 The emulator is initialized with the block `front_runner["blockNumber"]-1` and no single transactions are executed prior to running the analysis. Therefore, the state cannot include transactions that were executed in the same block before $T_A$.
 
 Similar to the case with the block environment, this could lead to differences between the emulation and the results from the blockchain, when $T_A$ or $T_V$ are impacted by a previous transaction in the same block.
@@ -256,12 +267,15 @@ Using state changes further has the advantage, that we only consider relative ch
 Our definition does not include #emph[read-write] TODs, i.e. we do not check whether executing $T_B$ before $T_A$ would have an impact on $T_A$. We focus on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to impact the second transaction, and not ignore the other way round.
 
 === Definition strengths <sec:definition-strengths>
-#heading("Performance", level: 4, numbering: none)
+
+==== Performance
+
 To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world state $sigma$ and the state changes from $T_A$, $T_B$ and the intermediary transactions $T_(X_n)$. With the state changes we can compute $sigma_(X_n) - Delta_(T_A) = sigma + Delta_(T_A) + (sum_(i = 0)^(i = n) Delta_(T_(X_i))) - Delta_(T_A)$ and then execute $T_B$ on this state. Using state changes allows us to check if $T_A$ and $T_B$ are TOD with only one transaction execution, despite including the effects of arbitrary many intermediary transactions.
 
 If we want to check n transactions for TOD, we could execute all n transactions to obtain their state changes. There are $frac(n^2 - n, 2)$ transaction pairs, thus if we wanted to test each pair for TOD we would end up with a total of $n + frac(n^2 - n, 2) = frac(n^2 + n, 2)$ transaction executions. Similar to @torres_frontrunner_2021 and @zhang_combatting_2023, we can filter irrelevant transactions pairs to drastically reduce the search space.
 
-#heading("Similarity to blockchain executions", level: 4, numbering: none)
+==== Similarity to blockchain executions
+
 With our definition, the state change $Delta_(T_B)$ from the normal execution is equivalent to the state change that happened on the blockchain. Also, the reversed order is closely related to the state from the blockchain, as we start with $sigma_(X_n)$ and only modify the relevant parts for our analysis. Furthermore, we prevent effects from block environment changes by using the same one as on the blockchain.
 
 This contrasts other implementations, where transactions are executed in different block environments than originally, are executed based on a different starting state or ignore the impact of intermediary transactions. All three cases can alter the execution of $T_A$ and $T_B$, such that the result is not closely related to the blockchain anymore.
@@ -271,15 +285,15 @@ This contrasts other implementations, where transactions are executed in differe
 
 #change[Added focus on impact on $T_B$ section]
 
-#heading(level: 4, numbering: none)[Focus on impact on $T_B$]
+==== Focus on impact on $T_B$ <sec:weakness-focus-on-tb>
 
 In some cases, the transaction order can impact the execution of the individual transactions, but does not affect the overall result of executing both transactions. Our definition does not consider the execution of $T_A$ after $T_B$ in the reverse order, which could lead to incorrect TOD classification.
 
 For example, consider the case where both $T_A$ and $T_B$ multiply a value in a storage slot by 5. If the storage slot initially has the value 1, then executing both $T_A$ and $T_B$ will result in 25, regardless of the order. However, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ are different, as for one scenario the value changes from 1 to 5 and for the other from 5 to 25. Therefore, this would be classified as TOD by our definition.
 
-Note, that our definition is robust against the cases, where the absolute values may differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equality uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B = Delta_(T_B prime)$.
+Note, that our definition is robust against the cases, where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equality uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B = Delta_(T_B prime)$.
 
-#heading(level: 4, numbering: none)[Indirect dependencies]
+==== Indirect dependencies
 
 #change[Rephrasing of this paragraph]
 
@@ -395,11 +409,10 @@ Therefore, the remaining attack vectors are `SSTORE`, to modify the storage of a
 
 == Everything is TOD
 Our definition of TOD is very broad and marks many transaction pairs as TOD. For instance, if a transaction $T_B$ uses some storage value for a calculation, then the execution likely depends on the transaction that previously has set this storage value. Similarly, when someone wants to transfer Ether, they can only do so when they first received that Ether. Thus, they are dependent on some transaction that gave them this Ether previously.
-#todo("What about block rewards?")
 
 #theorem[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma italic("sender")_b gt.eq v_0$. This requires, that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and $post(Delta_(T_A)) (italic("sender"))_b gt.eq v_0$.
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(italic("sender"))_b gt.eq v_0$. This requires, that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and $post(Delta_(T_A)) (italic("sender"))_b gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
@@ -413,7 +426,7 @@ In this chapter, we discuss how we search for potential TODs in the Ethereum blo
 == TOD candidate finding
 We make use of the RPC method `debug_traceBlockByNumber`, which allows replaying all transactions of a block the same way they were originally executed. With the `prestateTracer` config, this method also outputs, which state has been accessed, and using the `diffMode` config, also which state has been modified#footnote[When running the prestateTracer in diffMode, several fields are only implicit in the response. We need to make these fields explicit for further analysis. Refer to the documentation or the source code for further details.].
 
-By inspecting the source code from the tracers for Reth@paradigm_revm-inspectors_2024 and results from the RPC call, we found out, that for every touched account it always includes the account’s balance, nonce and code in the prestate. For instance, even when only the balance was accessed, it will also include the nonce in the prestate#footnote[I opened a #todo("link visibility") #link("https://github.com/ethereum/go-ethereum/pull/30081")[pull request] to clarify this behaviour and now this is also reflected in the documentation@noauthor_go-ethereum_2024-1.]. Therefore, we do not know precisely which state has been accessed, which can be a source of false positives for collisions.
+By inspecting the source code from the tracers for Reth@paradigm_revm-inspectors_2024 and results from the RPC call, we found out, that for every touched account it always includes the account’s balance, nonce and code in the prestate. For instance, even when only the balance was accessed, it will also include the nonce in the prestate#footnote[I opened a #link("https://github.com/ethereum/go-ethereum/pull/30081")[pull request] to clarify this behaviour and now this is also reflected in the documentation@noauthor_go-ethereum_2024-1.]. Therefore, we do not know precisely which state has been accessed, which can be a source of false positives for collisions.
 
 We store all the accesses and modifications in a database and then query for accesses and writes that have the same state key, giving us a list of collisions. We then use these collisions to obtain a preliminary set of TOD candidates.
 
@@ -447,7 +460,7 @@ The "Block windows", "Same senders" and "Recipient Ether transfer" filters have 
 
 === Filters
 
-#heading("Same-value collisions", level: 4, numbering: none)
+==== Same-value collisions
 When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction would have a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $frac(n^2 - n, 2) = 4950$ TOD candidates.
 
 To reduce this growth of TOD candidates, we also require for a collision, that $T_A$ writes exactly the value that is read or overwritten by $T_B$. Formally, following must hold to pass this filter:
@@ -461,22 +474,23 @@ With the example of 100 transactions modifying the balance of address $a$, when 
 
 Apart from the performance benefit, this filter also removes many TOD candidates that are potentially indirect dependent. For instance, let us assume that we removed the TOD candidate $(T_A , T_B)$. By definition of this filter, there must be some key $K$ with $post(Delta_(T_A)) (K) != pre(Delta_(T_B)) (K)$, thus some transaction $T_X$ must have modified the state at $K$ between $T_A$ and $T_B$. Therefore, we would also have a collision (and TOD candidate) between $T_A$ and $T_X$, and between $T_X$ and $T_B$. This would be a potential indirect dependency, which could lead to unexpected results as argued in @sec:weaknesses.
 
-#heading("Block windows", level: 4, numbering: none)
+==== Block windows
+
 According to a study of 24 million transactions from 2019 @zhang_evaluation_2021, the maximum observed time it took for a pending transaction to be included in a block, was below 200 seconds. Therefore, when a transaction $T_B$ is submitted, and someone instantly attacks it by creating a new transaction $T_A$, the inclusion of them in the blockchain differs by at most 200 seconds. We currently add a new block to the blockchain every 12 seconds according to Etherscan @etherscan_ethereum_2024, thus $T_A$ and $T_B$ are at most $200 / 12 approx 17$ blocks apart from each other. As the study is already 5 years old, we use a block window of 25 blocks instead, to account for a potential increase in latency since then.
 
 Thus, we filter out all TOD candidates, where $T_A$ is in a block that is 25 or more blocks away from the block of $T_B$.
 
-#heading("Block validators", level: 4, numbering: none)
+==== Block validators
+
 In Ethereum, each transaction must pay a transaction fee to the block validator and thus modifies the block validator’s balance. This would qualify each transaction pair in a block as a TOD candidate, as they all modify the balance of the block validator’s address.
 
 We exclude TOD candidates, where the only collision is the balance of any block validator.
 
-#heading("Nonce and Code collisions", level: 4, numbering: none)
+==== Nonce and code collisions
+
 We showed in @sec:relevant-collisions, that nonce and code collisions are not relevant for TOD attacks. Therefore, we ignore collisions for this state type.
 
-#heading("Indirect dependency", level: 4, numbering: none)
-
-#todo("Do we simply want to remove everything but the smallest TOD candidates instead? Would be more clean, but remove many more TOD candidates")
+==== Indirect dependency
 
 As argued in @sec:weaknesses, indirect dependencies can cause unexpected results in our analysis, therefore we will filter TOD candidates that have an indirect dependency. We will only consider the case, where the indirect dependency is already visible in the normal order and accept that we potentially miss some indirect dependencies. Alternatively, we could also remove a TOD candidate $(T_A , T_B)$ when we also have the TOD candidate $(T_A , T_X)$, however this would remove many more TOD candidates.
 
@@ -509,12 +523,14 @@ We already have a model of all direct (potential) dependencies with the TOD cand
 )
 <fig:tod_candidate_dependency>
 
-#heading("Same sender", level: 4, numbering: none)
+==== Same sender
+
 If the sender of both transactions is the same, the victim would have attacked themselves.
 
 To remove these TOD candidates, we use the `eth_getBlockByNumber` RPC method and compare the sender fields for $T_A$ and $T_B$.
 
-#heading("Recipient Ether transfer", level: 4, numbering: none)
+==== Recipient Ether transfer
+
 If a transaction sends Ether without executing code, it only depends on the balance of the EOA that signed the transaction. Other entities can only increase the balance of this EOA, which has no adverse effects on the transaction.
 
 Thus, we can exclude TOD candidates, where $T_B$ has no code access.
@@ -602,17 +618,17 @@ One goal of this paper is to create a diverse set of attacks for our benchmark. 
 
 == Deduplication <sec:deduplication>
 
-To reduce the prevalence of specific contracts in the TOD candidates, we randomly pick 10 collisions from each address and drop the rest from our analysis. We apply three different grouping mechanisms for this:
+To reduce the prevalence of specific contracts in the TOD candidates, we randomly pick 10 collisions of each contract and drop the rest from our analysis. We apply three different mechanisms to group similar contracts:
 
-In a first step we group the collisions by the address where they happened, and choose 10 from this subset. For instance, if many transactions access the balance and code of the same address, we would only retain 10 of these accesses.
+Firstly, we group the collisions by the address where they happened, and randomly select 10 collisions from each group. For instance, if many transactions access the balance and code of the same address, we would only retain 10 of these accesses.
 
-Then we consider collisions at addresses that contain code. In Ethereum, the same code can be deployed to different addresses. As attacks for contracts with the same code are likely similar, we limit the number of collisions to 10 for each contract code. To do so, we group the collisions by the code hash and select 10 collisions from this subset.
+Secondly, we also group collisions at different addresses if the addresses share exactly the same code. To do so, we group the collisions by the code hash and sample 10 collisions per code hash.
 
-Finally, instead of matching for exactly the same code at different addresses, we will also group similar codes together, and then limit the collisions. We use the grouping mechanism from @diangelo_evolution_2024, where they compute a "skeleton" for each code by removing the metadata and the values for `PUSH` instructions. They have shown, that codes with the same skeleton mostly yield the same vulnerability detection results. Therefore, we will also group by each code skeleton and only take 10 collisions for each group.
+Finally, instead of matching for exactly the same code, we also group similar codes together. We use the grouping mechanism from @diangelo_evolution_2024, where they compute a "skeleton" for each code by removing the metadata and the values for `PUSH` instructions. They have shown, that codes with the same skeleton mostly yield the same vulnerability detection results. Therefore, we only keep 10 collisions per code skeleton.
 
 === Results
 
-We ran the same experiment as in the previous section, but now with the additional deduplication filters. In @tab:experiment_deduplication, we see that from the initial 8,127 TOD candidates, only 2,320 remained after removing duplicates.
+We ran the same experiment as in the previous section, but now with the additional deduplication filters. In @tab:experiment_deduplication, we see that from the initial 8,127 TOD candidates, only 2,320 remained after removing duplicates. Most of the TOD candidates were already removed by limiting the amount of collisions per address and the other group limits reduced it further.
 
 #figure(
   table(
@@ -635,7 +651,13 @@ We ran the same experiment as in the previous section, but now with the addition
 
 = TOD detection
 
-After mining a list of TOD candidates, we will now check, which of them fall into our TOD definition from @sec:tod-definition. For this, we need to compute the world state $sigma_X_n$, the state right before $T_B$ was executed, and $sigma_X_n - Delta_T_A$, where we reverted all changes from $T_A$ to the state before $T_A$ was executed. Then we execute $T_B$ once on $sigma_X_n$ and on $sigma_X_n - Delta_T_A$ and check if these two executions result in different state changes.
+After mining a list of TOD candidates, we now check, which of them are actually TOD.
+
+== Overview
+
+For the normal scenario $T_A -> T_B$, we execute the transactions as they were executed on the blockchain, and record the state changes $Delta_T_A$ and $Delta_T_B$. For the reverse scenario $T_B -> T_A$, we execute $T_B$ as if $T_A$ has not been executed and record the state changes $Delta_(T_B prime)$. Then, according to our definition, the transactions are TOD if and only if $Delta_T_B != Delta_(T_B prime)$.
+
+In order to evaluate the weakness explained in @sec:weakness-focus-on-tb, we also present an adapted TOD definition and analyze where the results of these definitions differ.
 
 == Transaction execution via RPC
 
@@ -643,25 +665,103 @@ Let $(T_A, T_B)$ be our TOD candidate and split the block containing $T_B$ into 
 
 $ sigma ->^(T_X_0) dots ->^(T_X_n) sigma_X_n ->^(T_B) sigma_T_B ->^(T_Y_0) dots ->^(T_Y_m) sigma_B $
 
-To execute $T_B$ on $sigma_X_n$ and $sigma_X_n - Delta_T_A$, we make use of the `debug_traceCall` RPC method. As parameters, it takes the transaction data, a block number for the block environment and initial world state, and state overrides, that allow us to customize specify parts of the world state. Per default, it will use the world state #emph[after] executing all transactions in this block, i.e. $sigma_B$.
+In the normal scenario, we want to execute $T_B$ on $sigma_X_n$ and in the reverse scenario on $sigma_X_n - Delta_T_A$. We use the `debug_traceCall` RPC method for these transaction executions. As parameters, it takes the transaction data, a block number that specifies the block environment and the initial world state, and state overrides, that allow us to customize specify parts of the world state. Per default, the method uses the world state #emph[after] executing all transactions in this block, i.e. $sigma_B$. Therefore, we use the state overrides parameter to get from $sigma_B$ to $sigma_X_n$ and $sigma_X_n - Delta_T_A$.
 
-For the normal scenario, we want to execute $T_B$ on $sigma_X_n$, therefore we simulate a rollback of all changes after $T_X_n$ by computing $sum_(i=m)^0(-Delta_T_Y_i) - Delta_T_B$ and applying this rollback with the `stateOverrides` parameter#footnote[Opposed to our argument in @sec:definition-strengths, we also execute the normal scenario instead of reusing the state change $Delta_T_B$ from `debug_traceBlockByNumber`. We do this because of the accuracy problem described in @sec:execution-accuracy. This way, we can compare two execution results, where both have the same gas cost calculations. This is not necessary when using an archive node without this issue.]. For the reverse scenario, we also subtract $Delta_T_A$ from the `stateOverrides`.
-
-We then conclude that $(T_A, T_B)$ is TOD if and only if the state changes from these two executions are different.
+For the normal scenario, we want to execute $T_B$ on $sigma_X_n$. Conceptually, we start from $sigma_B$ and then undo all transaction changes after $T_X_n$ in reverse order, to reach $sigma_X_n$. We do this with the state overrides $sum_(i=m)^0(-Delta_T_Y_i) - Delta_T_B$. For the reverse scenario, we also subtract $Delta_T_A$ from the state overrides, thus simulating how $T_B$ behaves without the changes from $T_A$.
 
 == Execution inaccuracy <sec:execution-accuracy>
 
-While manually testing this method, we found that using `debug_traceCall` together with state overrides can lead to incorrect gas cost calculations with Erigon#footnote[See https://github.com/erigontech/erigon/issues/11254.]. To account for these inaccuracies, we compare the state changes from the normal execution via `debug_traceCall` with the state changes from `debug_traceBlockByNumber`. We include TOD candidates in our analysis, if they only differ in the amount of transaction fee transferred from the transaction sender to the block validator, which is directly caused by a change in gas costs.
+While manually testing this method, we found that using `debug_traceCall` with state overrides can lead to incorrect gas cost calculations with Erigon#footnote[See https://github.com/erigontech/erigon/issues/11254.]. To account for these inaccuracies, we compare the state changes from the normal execution via `debug_traceCall` with the state changes from `debug_traceBlockByNumber`. As we do not provide state overrides to `debug_traceBlockByNumber`, this method should yield the correct state changes and we can detect differences to our simulation.
+
+When comparing the state changes of a transaction, and they only differ in the balances of the sender and the block validator, we keep it as a TOD candidate. Such differences are expected when gas costs vary, as the gas costs impact the priority fee sent from the transaction sender to the block validator. If there are other differences, we exclude the TOD candidate from our further analysis, as the simulation does not reflect the real behaviour in such cases.
+
+== TOD assessment
+
+=== Original definition
+
+Recalling our TOD definition from @sec:tod-definition, we say that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) != Delta_(T_B prime)$. In other words, we compare the state changes by $T_B$ in the normal scenario with the state changes in the reverse scenario.
+
+=== Adapted definition
+
+We want to evaluate, how much impact the weakness described in @sec:weakness-focus-on-tb has in practice. The weakness is, that we only compare the state changes of $T_B$ in both scenarios. Therefore, in the adapted definition we compare the state changes of both $T_A$ and $T_B$ in the normal scenario against the state changes of $T_A$ and $T_B$ in the reverse scenario.
+
+To get the state changes of $T_A$ in the reverse scenario, we execute $T_A$ on $sigma + Delta_(T_B prime)$, simulating $T_A$ after $T_B$.
+
+=== State changes comparison
+
+@alg:tod-assessment shows how we check for TOD given the state changes. The black lines show the calculation for the original definition and the blue lines the modifications for the adapted definition. For each state key, we compute the change for this key in the normal scenario ($d_1$), and the change in the reverse scenario ($d_2$). If the changes differ between the scenarios, we have a TOD.
+
+#figure(
+  kind: "algorithm",
+  caption: flex-caption(
+    [TOD assessment],
+    [TOD assessment],
+  ),
+  pseudocode-list(hooks: 0.5em)[
+    + *for* $K in changedKeys(Delta_T_B) union changedKeys(Delta_(T_B prime))$
+    + #hide[*for* $K$] #text(fill: blue)[$union changedKeys(Delta_T_A) union changedKeys(Delta_(T_A prime))$]
+      + $d_1 = post(Delta_T_B)(K) - pre(Delta_T_B)(K)$
+      + $d_2 = post(Delta_(T_B prime))(K) - pre(Delta_(T_B prime))(K)$
+      + #text(fill: blue)[$d_1 = d_1 + post(Delta_T_A)(K) - pre(Delta_T_A)(K)$]
+      + #text(fill: blue)[$d_2 = d_2 + post(Delta_(T_A prime))(K) - pre(Delta_(T_A prime))(K)$]
+      + *if* $d_1 != d_2$
+        + *return* \<TOD\>
+    + *return* \<not TOD\>
+  ],
+) <alg:tod-assessment>
 
 == Experiment
 
-We run our TOD detector on the 2,320 TOD candidates we found previously.
+We go through all 2,320 TOD candidates we found previously and check them for the original and the adapted TOD definitions.
+
+=== Results
+
+In @tab:experiment_check_definition we see the results for both definitions. From the 2,320 TOD candidates we analyzed, slightly more than one third are TOD according to both definitions. For the original definition, 19 TOD candidates could not be analyzed because of execution inaccuracies. For the adapted definition, this number is higher, as we need to execute double the amount of transactions.
+
+With both definitions, for 29% of the TOD candidates, $T_B$ fails because of insufficient funds to cover the transaction fee when it is executed without the state changes by $T_A$. This can happen when $T_A$ transfers Ether to the sender of $T_B$, and $T_B$ has less balance than the transaction fee without this transfer. Furthermore, if the execution of $T_B$ consumes more gas without the changes of $T_A$, it needs to pay a higher transaction fee which can also lead to insufficient funds. In both cases, the existence of $T_A$ enables the execution of $T_B$, therefore we do not consider these to be TOD attacks and ignore them from further analysis.
+
+Finally, one error occurred with the original definition which did not occur for the other definition. However, this error was not reproducible, potentially being a temporary fault with the RPC requests.
+
+#figure(
+  table(
+    columns: 3,
+    align: (left, right, right),
+    table.header([Result], [Original definition], [Adapted definition]),
+    [TOD], [809], [775],
+    [not TOD], [819], [839],
+    [inaccurate execution], [19], [34],
+    [insufficient ether], [672], [672],
+    [error], [1], [0],
+  ),
+  caption: flex-caption(
+    [The results from analyzing TOD candidates for the original TOD definition and the adapted TOD definition.],
+    [TOD checking with definition comparison],
+  ),
+  kind: table,
+)
+<tab:experiment_check_definition>
+
+=== Analysis of differences <sec:analysis-of-differences>
+
+To understand, in which cases the two definitions lead to different results, we manually evaluated the cases where one result was TOD and the other not TOD. To assist the analysis, we let our tool output the relative changes of each transaction in both scenarios. In all of the cases, we manually verify that the manual application of @alg:tod-assessment on the relative changes gives the same result as the automatic application, to ensure the algorithm was correctly implemented.
+
+Our analysis shows, that 34 TOD candidates have been marked as TOD if we only consider changes by $T_B$, while they are not TOD if we consider changes of both transactions. In all of these cases, the differences of $T_A$ between the normal and reverse scenario balance out the differences of $T_B$ between the normal and reverse scenario. One example is discussed in detail in @app:analysis-of-definition-differences.
+
+Further 10 TOD candidates are not TOD considering only the changes by $T_B$, but are TOD if we also consider $T_A$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.
+
+In total, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. This demonstrates that the theoretical weakness from @sec:weakness-focus-on-tb has practical impacts, but also that simulating $T_A$ in the reverse scenario can be omitted in a tradeoff for some accuracy.
+
 
 = Trace analysis
 TBD.
 
-= TOD Attack results
-Overall findings of the TOD attack mining and analysis.
+= Evaluation
+
+@zhang_combatting_2023 and @torres_frontrunner_2021 have both analyzed the blocks 11,299,000-11,300,000. We can check if:
+- TOD candidates would be found (or at which stage they are filtered)
+- TOD check marks them as TOD (prerequisite for @zhang_combatting_2023, also very likely for @torres_frontrunner_2022)
+- Trace analysis labels them similar to @zhang_combatting_2023
+- Manual check of sample for each other label we set (checking the traces if they match the definition we gave for the labels)
 
 = Tool benchmarking
 TBD.
