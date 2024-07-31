@@ -240,7 +240,6 @@ Similar to the case with the block environment, this could lead to differences b
 To address the issues above, we will provide a more precise definition for TOD, that tries to be as close to the execution that happened on the blockchain, while also minimizing the impact of intermediary transactions on the analysis results.
 
 #definition("TOD")[
-  #todo[Left align]
   Consider a sequence of transactions, with $sigma$ being the world state right before $T_A$ was executed on the blockchain:
 
   $ sigma arrow.r^(T_A) sigma_A arrow.r^(T_(X_1)) dots.h arrow.r^(T_(X_n)) sigma_(X_n) arrow.r^(T_B) sigma_B $
