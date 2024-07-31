@@ -38,7 +38,7 @@ Similar to @wood_ethereum_2024[p.3], we will refer to the shared state as #emph[
 - #emph[code]: For contract accounts, the code is a sequence of EVM
   instructions.
 
-We denote the world state as $sigma$, the account state of an address $a$ as $sigma (a)$ and the nonce, balance, storage and code as $sigma (a)_n$, $sigma (a)_b$, $sigma (a)_s$ and $sigma (a)_c$ respectively. For the value at a storage slot $k$ we write $sigma (a)_s [k]$. #todo("We will also *use* an alternative notation") We will also an alternative notation $sigma (K)$, where we combine the identifiers of a state value to a single key $K$, which simplifies further definitions. We have the following equalities between the two notations:
+We denote the world state as $sigma$, the account state of an address $a$ as $sigma (a)$ and the nonce, balance, storage and code as $sigma (a)_n$, $sigma (a)_b$, $sigma (a)_s$ and $sigma (a)_c$ respectively. For the value at a storage slot $k$ we write $sigma (a)_s [k]$. We will also use an alternative notation $sigma (K)$, where we combine the identifiers of a state value to a single key $K$, which simplifies further definitions. We have the following equalities between the two notations:
 
 $
   sigma(a)_n &= sigma(("'nonce'", a)) \
@@ -50,17 +50,12 @@ $
 == EVM
 The Ethereum Virtual Machine (EVM) is used to execute code in Ethereum. It executes instructions, that can access and modify the world state. The EVM is Turing-complete, except that it is executed with a limited amount of #emph[gas] and each instruction costs some gas. When it runs out of gas, the execution will halt. @wood_ethereum_2024[p.14] For instance, this prevents execution of infinite loops, as it would use infinitely much gas and thus exceed the gas limit.
 
-Most EVM instructions are formally defined in #todo("... the Yellowpaper"). @wood_ethereum_2024[p.30-38] However, the Yellowpaper currently does not include the changes from the Cancun upgrade @noauthor_history_2024, therefore we will also refer to the informal descriptions available on #link("https://www.evm.codes/")[evm.codes]. @smlxl_evm_2024
+Most EVM instructions are formally defined in the Yellowpaper. @wood_ethereum_2024[p.30-38] However, the Yellowpaper currently does not include the changes from the Cancun upgrade @noauthor_history_2024, therefore we will also refer to the informal descriptions available on #link("https://www.evm.codes/")[evm.codes]. @smlxl_evm_2024
 
 == Transactions
 A transaction can modify the world state by transferring Ether and executing EVM code. It must be signed by the owner of an EOA and contains following data relevant to our work:
 
-- #emph[sender]: The address of the #todo("... EOA that signed this transaction") transaction sender#footnote[The
-  sender is implicitly given through a valid signature and the
-  transaction hash. @wood_ethereum_2024[p.25-27] We are only interested
-  in transactions that are included in the blockchain, thus the
-  signature must be valid and the transaction’s sender can always be
-  derived.].
+- #emph[sender]: The address of the EOA that signed this transaction.#footnote[The sender is implicitly given through a valid signature and the transaction hash. @wood_ethereum_2024[p.25-27] We are only interested in transactions that are included in the blockchain, thus the signature must be valid and the transaction’s sender can always be derived.]
 - #emph[recipient]: The destination address.
 - #emph[value]: The value of Wei that should be transferred from the
   sender to the recipient.
@@ -163,7 +158,7 @@ Similar to our intuitive TOD definition, they execute $T_A$ and $T_V$ in differe
 
 In @zhang_combatting_2023, they define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to the $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a arrow.r T_v arrow.r T_a^p$ and $T_v arrow.r T_a arrow.r T_a^p$. They monitor the transactions to check if the execution order impacts financial gains, which we will discuss later in more detail. #todo("Reference the frontrunning sections, when it's written")
 
-We note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. As we always execute $T_a^p$ #todo("... last"), and transaction execution is deterministic, it only gives a different result if the execution of $T_a$ and $T_v$ gave a different result. Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD.
+We note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. As we always execute $T_a^p$ last, and transaction execution is deterministic, it only gives a different result if the execution of $T_a$ and $T_v$ gave a different result. Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD.
 
 == Imprecise definitions
 Our intuitive definition of TOD, and the related definitions shown above, are not precise on the semantics of a reordering of transactions and their executions. These make it impossible to apply exactly the same methodology without analyzing the source code related to the papers. We detect three issues, where the definition is not precise enough and show how these were differently interpreted by the two papers.
@@ -260,9 +255,6 @@ Intuitively, we take the world state exactly before $T_B$ was executed, namely $
 We chose to compare the two executions on the state changes $Delta_(T_B) != Delta_(T_B prime)$, rather than on the resulting states $sigma_B != sigma_B prime$, to detect a wider range of TODs. Comparing on $sigma_B != sigma_B prime$ would be sufficient to detect #emph[write-read] TODs, where the first transaction writes some state and the second transaction accesses this state and outputs a different result because of this. However, we are also interested into #emph[write-write] TODs, where $T_A$ writes some state and $T_B$ overwrites the same state with a different value, thus hiding the change by $T_A$.
 
 For example, let $T_A$ write the value '1111' to some storage, s.t. we have $sigma_(X_n) (a)_s [k] = "'1111'"$, and $T_B$ write '2222' to the same storage, s.t. we have $sigma_B (a)_s [k] = "'2222'"$. When executing $T_B$ last, the world state would have '2222' at this storage slot, and when executing $T_A$ last, it would be '1111'. Therefore, the resulting world state is dependent on the order of $T_A$ and $T_B$. With our check of $Delta_T_B != Delta_(T_B prime)$ we include this scenario, because $Delta_T_B$ has a relative state change of $(2222 - 1111)$ for this storage slot, while $Delta_(T_B prime)$ has a relative state change of $(2222 - 0000)$, assuming it was '0000' before executing $T_A$.
-
-#todo[TODO]
-Using state changes further has the advantage, that we only consider relative changes. For instance, if both $T_A$ and $T_B$ increase the balance of some address $a$ by 10 Wei. In reality, the transaction order does not matter and $a$ will have 20 more Wei afterwards. However, our definition considers the execution of $T_B$, once with the state changes of $T_A$ and once without them. In the scenario without the state changes of $T_A$, the balance of $a$ will be 10 Wei lower.
 
 Our definition does not include #emph[read-write] TODs, i.e. we do not check whether executing $T_B$ before $T_A$ would have an impact on $T_A$. We focus on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to impact the second transaction, and not ignore the other way round.
 
