@@ -143,7 +143,7 @@ TBD.
 
 #todo("Add a motivating example for write-read TOD (e.g.  TOD-recipient) and for write-write TOD (e.g. ERC-20 approval).")
 
-== Relation to previous works
+== Relation to previous works <sec:tod-relation-previous-works>
 In @torres_frontrunner_2021 the authors do not provide a formal definition of TOD. However, for displacement attacks, they include the following check to detect if two transactions fall into this category:
 
 #quote(block: true)[
@@ -296,7 +296,9 @@ We denote state accesses by a transaction $T$ as a set of state keys $R_T = { K_
 
 We define the state collisions of two transactions as:
 
-$ colls(T_A , T_B) = (W_(T_A) sect R_(T_B)) union (W_(T_A) sect W_(T_B)) $
+$
+  colls(T_A , T_B) = (W_(T_A) sect R_(T_B)) union (W_(T_A) sect W_(T_B))
+$ #todo[This is similar to TransRacer, we should mention this.]
 
 For instance, if transaction $T_A$ modifies the balance of some address $a$, and $T_B$ accesses this balance, we have $colls(T_A, T_B) = ({ ('"balance"', a) } sect {('"balance"', a)}) union ({('"balance"', a)} sect emptyset) = {('"balance"', a)}$.
 
@@ -662,7 +664,7 @@ When comparing the state changes of a transaction, and they only differ in the b
 
 Recalling our TOD definition from @sec:tod-definition, we say that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) != Delta_(T_B prime)$. In other words, we compare the state changes by $T_B$ in the normal scenario with the state changes in the reverse scenario.
 
-=== Adapted definition
+=== Adapted definition <sec:adapted-definition>
 
 We want to evaluate, how much impact the weakness described in @sec:weakness-focus-on-tb has in practice. The weakness is, that we only compare the state changes of $T_B$ in both scenarios. Therefore, in the adapted definition we compare the state changes of both $T_A$ and $T_B$ in the normal scenario against the state changes of $T_A$ and $T_B$ in the reverse scenario.
 
@@ -732,6 +734,141 @@ Further 10 TOD candidates are not TOD considering only the changes by $T_B$, but
 
 In total, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. This demonstrates that the theoretical weakness from @sec:weakness-focus-on-tb has practical impacts, but also that simulating $T_A$ in the reverse scenario can be omitted in a tradeoff for some accuracy.
 
+= TOD attack definitions
+
+Previously, we noted that the TOD definition is too general to be directly used for attack or vulnerability detection. In this section, we discuss several definitions from previous works, that cover more specific cases than the general TOD definition.
+
+== Attacker profit and victim losses
+
+In @sec:tod-relation-previous-works we already discussed, how the definition in @zhang_combatting_2023 relates to our preliminary definition of TOD. We now present their definition in more detail, and how we will apply it.
+
+They consider two transaction orderings: $T_A -> T_B -> T_P$ and $T_B -> T_A -> T_P$. The order of $T_A$ and $T_B$ corresponds to our normal and reverse scenario. The transaction $T_P$ is an optional third transaction, which sometimes is required for the attack. Our study only considers transaction pairs, therefore we will adapt their definition and remove $T_P$ from it. Analyzing their dataset, we find that only 2.2% of the attacks contain such a $T_P$ transaction, therefore we neglect only a small proportion of the covered attacks with this modification.
+
+They define an attack to occur when following two properties hold:
+
++ Attacker Gain: "The attacker obtains financial gain in the [normal] scenario compared with the [reverse] scenario."
+
++ Victim Loss: "The victim suffers from financial loss in the [normal] scenario compared with the [reverse] scenario."
+
+For financial gains and losses, they consider Ether and ERC-20, ERC-721, ERC-777, and ERC-1155 tokens.
+
+As an attacker, they consider either the sender of $T_A$ or the contract that $T_A$ calls (as this may be a contract designed to conduct attacks and temporarily store the profits). The victim is the sender of $T_B$.
+
+=== Formalization
+
+#let currencies = math.italic("Currencies")
+#let assetsNormal = math.italic("assets_normal")
+#let assets = math.italic("assets")
+#let assetsReverse = math.italic("assets_reverse")
+We now take their properties and formalize them. For simplicity we do not explicitly mention $T_A$ and $T_B$ in all formulas, but assume that we inspect a specific TOD candidate $(T_A, T_B)$. Also, we use the same world states and environments for transaction execution as discussed previously for the normal and reverse scenarios (see @sec:tod-definition and @sec:adapted-definition#todo[I should rearrange it, s.t. normal and reverse scenarios are explicitly defined. I reference them often.]).
+
+We use $currencies$#todo(position: right)[Maybe use Assets as by Halids paper] to denote a set of currencies that occur in $T_A$ and $T_B$ in both scenarios. As a currency, we consider Ether and contracts that implement one of the four token standards. Let $assetsNormal(C, a) in ZZ$ be the amount of currency $C$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(C, a)$ be the counterpart for the reverse scenario.
+
+For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario only gets 2500 USDT for the 1 Ether, because the transaction order somehow impacted the conversion rate. The currencies that occur are $currencies = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
+
+#let gain = "Gain"
+#let onlyGain = "OnlyGain"
+#let loss = "Loss"
+#let onlyLoss = "OnlyLoss"
+#let attack = "Attack"
+#let attacker = "attacker"
+#let victim = "victim"
+#let sender = "sender"
+#let recipient = "recipient"
+// TODO: italics probably inconsistent with other definitions
+
+For a successful attack, we define that in the normal scenario, the attacker makes more profits than in the reverse scenario, and the victim makes more losses than in the reverse scenario. We use following predicates to describe the existence of some gain or loss:
+
+$
+  gain(a) &<-> exists C in currencies: assetsNormal(C, a) > assetsReverse(C, a)\
+  loss(a) &<-> exists C in currencies: assetsNormal(C, a) < assetsReverse(C, a)\
+$
+
+Continuing the previous example, we would have $gain(a) = top$, as $a$ makes more USDT in the normal scenario than in the reverse scenario, and $loss(a) = bot$, as neither for Ether, nor for USDT $a$ makes less in the normal scenario than in the reverse scenario.
+
+However, we also need to consider the case, where both $gain(a)$ and $loss(a)$ are true. For instance, maybe the attacker gains more tokens but also pays more Ether in the normal scenario. It is not trivial to measure arbitrary tokens in Ether, therefore we cannot determine if $a$ made a financial profit or loss in this case. To avoid such cases, we introduce following two predicates:
+
+$
+  onlyGain(a) &<-> gain(a) and not loss(a)\
+  onlyLoss(a) &<-> loss(a) and not gain(a)\
+$
+
+With these, we can define an attack to occur when the attacker has only advantages in the normal scenario compared to the reverse scenario, and the victim has only disadvantages. As explained above, the attacker can be either the sender or the recipient of $T_A$:
+
+$
+  attack <-> (&onlyGain(sender(T_A)) or onlyGain(recipient(T_A)))\
+  and &onlyLoss(sender(T_B))
+$
+
+#todo[
+  - token background
+  - example attack
+  - usage of logs to track tokens
+]
+
+== Securify TOD properties
+
+The authors of Securify describe three TOD properties: @tsankov_securify_2018
+
+- *TOD Transfer*: "[...] the execution of the ether transfer depends on transaction ordering"
+- *TOD Amount*: "[...] the amount of ether transferred depends on the transaction ordering"
+- *TOD Receiver*: "[...] the recipient of the ether transfer might change, depending on the transaction ordering"
+
+For Ether transfers, they consider only `CALL` instructions, which have a `value` parameter to denote the amount of Ether that should be transferred, and an `address` parameter to denote the recipient of the Ether transfer.
+
+=== Formalization
+#let executedInstructions = math.italic("Executions")
+#let location = math.italic("Loc")
+#let instruction = math.italic("Instruction")
+#let inputs = math.italic("Inputs")
+#let contextAddr = math.italic("ContextAddress")
+#let codeAddr = math.italic("CodeAddress")
+#let pc = math.italic("ProgramCounter")
+
+#todo[Single transaction definition]
+
+When executing an instruction, we denote this as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. `CALL`. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses to the current address, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
+
+We use grouping of instruction executions to define the TOD properties. This has the intended meaning, of taking a set of instruction executions and
+
+#let normalCalls = $italic("Transfers")_N$
+#let reverseCalls = $italic("Transfers")_R$
+
+Let $normalCalls$ denote the `CALL` instruction executions with a positive value in the normal scenario and $reverseCalls$ the equivalent for the reverse scenario.
+
+==== TOD Transfer
+
+If there is a location, where the number of `CALL`s differ between the normal and the reverse scenario, we say that TOD Transfer is fulfilled:
+
+$
+  "TOD-Transfer" <-> exists l o c: |{C in normalCalls | C_L = l o c}| != |{
+    C in reverseCalls | C_L = l o c
+  }|
+$
+
+==== TOD Amount
+
+If there is a location and a value, where the number of `CALL`s differ between the normal and the reverse scenario, we say that TOD Amount is fulfilled:
+
+$
+  "TOD-Amount" <-> &not"TOD-Transfer"\
+  &and exists l o c, v: |{C in normalCalls | C_L = l o c and C_v = v}| != |{C in reverseCalls | C_L = l o c and C_v = v}|
+$
+
+We exclude cases where TOD Transfer is fulfilled, as TOD Amount would always be fulfilled if TOD Transfer is fulfilled.
+
+For the case, that at maximum one `CALL` happens per location, we could directly compare the values used at each `CALL` between the normal and reverse scenario. However, with loops, multiple `CALL` executions can happen at the same location, which is the reason we choose the definition that compares the number of occurrences.
+
+For example, consider a case where in the normal scenario we have three `CALL`s at the same location $l$, two with value 5 and one with value 6, but in the reverse scenario we have only one `CALL` with value 5 and one with value 6. For location $l$ and value 5 two `CALL`s exist in the normal scenario, but only one in the reverse scenario, therefore TOD Amount is fulfilled.
+
+==== TOD Receiver
+
+We define TOD Receiver analogously to TOD Amount, except that we use the `address` input instead of the `value`:
+
+$
+  "TOD-Receiver" <-> &not"TOD-Transfer"\
+  &and exists l o c, a: |{C in normalCalls | C_L = l o c and C_a = a}| != |{C in reverseCalls | C_L = l o c and C_a = a}|
+$
 
 = Trace analysis
 TBD.
@@ -745,6 +882,7 @@ TBD.
 - Manual check of sample for each other label we set (checking the traces if they match the definition we gave for the labels)
 
 = Tool benchmarking
+// Instead of running it myself, I could use previous results (e.g. the benchmark from Zhang et al. or the dataset from Evolution...)
 TBD.
 == Systematic Literature Review
 == Result

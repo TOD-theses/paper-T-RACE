@@ -46,7 +46,10 @@
 #outline(title: "List of Tables", target: figure.where(kind: table))
 #outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
 
-#todo[For Evolution paper: why page 41-42?]
+#todo[
+- Evolution: why page 41-42?
+- Nyx: S&P 2024
+]
 
 #bibliography("refs.bib")
 
