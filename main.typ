@@ -834,16 +834,14 @@ We use grouping of instruction executions to define the TOD properties. This has
 #let normalCalls = $italic("Transfers")_N$
 #let reverseCalls = $italic("Transfers")_R$
 
-Let $normalCalls$ denote the `CALL` instruction executions with a positive value in the normal scenario and $reverseCalls$ the equivalent for the reverse scenario.
+Let $normalCalls$ denote the `CALL` instruction executions with a positive value in the normal scenario and $reverseCalls$ the equivalent for the reverse scenario.#todo[Reverted calls]
 
 ==== TOD Transfer
 
 If there is a location, where the number of `CALL`s differ between the normal and the reverse scenario, we say that TOD Transfer is fulfilled:
 
 $
-  "TOD-Transfer" <-> exists l o c: |{C in normalCalls | C_L = l o c}| != |{
-    C in reverseCalls | C_L = l o c
-  }|
+  "TOD-Transfer" <-> exists l o c: |{C in normalCalls | C_L = l o c}| != |{C in reverseCalls | C_L = l o c}|
 $
 
 ==== TOD Amount
@@ -852,7 +850,9 @@ If there is a location and a value, where the number of `CALL`s differ between t
 
 $
   "TOD-Amount" <-> &not"TOD-Transfer"\
-  &and exists l o c, v: |{C in normalCalls | C_L = l o c and C_v = v}| != |{C in reverseCalls | C_L = l o c and C_v = v}|
+  &and exists l o c, v: |{C in normalCalls | C_L = l o c and C_v = v}| != |{
+    C in reverseCalls | C_L = l o c and C_v = v
+  }|
 $
 
 We exclude cases where TOD Transfer is fulfilled, as TOD Amount would always be fulfilled if TOD Transfer is fulfilled.
@@ -867,25 +867,200 @@ We define TOD Receiver analogously to TOD Amount, except that we use the `addres
 
 $
   "TOD-Receiver" <-> &not"TOD-Transfer"\
-  &and exists l o c, a: |{C in normalCalls | C_L = l o c and C_a = a}| != |{C in reverseCalls | C_L = l o c and C_a = a}|
+  &and exists l o c, a: |{C in normalCalls | C_L = l o c and C_a = a}| != |{
+    C in reverseCalls | C_L = l o c and C_a = a
+  }|
 $
+
+== ERC-20 Approval
+
+TBD.
 
 = Trace analysis
 TBD.
 
 = Evaluation
 
-@zhang_combatting_2023 and @torres_frontrunner_2021 have both analyzed the blocks 11,299,000-11,300,000. We can check if:
-- TOD candidates would be found (or at which stage they are filtered)
-- TOD check marks them as TOD (prerequisite for @zhang_combatting_2023, also very likely for @torres_frontrunner_2022)
-- Trace analysis labels them similar to @zhang_combatting_2023
-- Manual check of sample for each other label we set (checking the traces if they match the definition we gave for the labels)
+/*
+We run our tool on blocks 11,299,000-11,300,000 (inclusive?), getting $X$ results.
 
-= Tool benchmarking
-// Instead of running it myself, I could use previous results (e.g. the benchmark from Zhang et al. or the dataset from Evolution...)
-TBD.
-== Systematic Literature Review
-== Result
+We manually check positive instances:
+- gain and loss that are not in the ground truth
+  - compare Logs with Etherscan
+  - manually parse logs from traces that contain relevant addresses
+  - compute property
+
+We manually check negative instances (marked as negative):
+- gain and loss that are in the ground truth:
+  - take witness from the ground truth and evaluate with traces
+
+We evaluate why TOD candidates where excluded that are in the ground truth:
+-
+*/
+
+In this section, we evaluate the methods proposed above. As a ground truth, we use the dataset from @zhang_combatting_2023 that evaluates their method#todo[Method to detect attacker gain and victim loss attacks] on the blocks 11,299,000-11,300,000. We analyze the same set of blocks and evaluate where our results differ from the ground truth.
+
+First of, we combine the TOD candidate mining, the TOD detection and TOD attack analysis, and evaluate them as a single unit. Afterwards, we evaluate each component individually against the ground truth.
+
+== Overall evaluation
+
+We mined TOD candidates in the 1,000 blocks starting at 11,299,000 which resulted in 14,500 TOD candidates. From those, the TOD detection reported 2,959 as TOD with respect to our adapted definition. And finally, for 280 of those, an attacker gain and victim loss was found.
+
+We compare the TOD candidates, TODs and TOD attacks we found against the ground truth in @tab:eval-overall. The ground truth consists of 5,601 attacks#todo[without profit transaction attacks]. Our mining procedure marked 115 of those as TOD candidates. From these 115 TOD candidates, 95 were detected as TOD and of those 85 were detect as an attack. We see, that we miss 98% of the ground truth attacks when mining the TOD candidates. However, from the TOD candidates we correctly mark 74% as TOD and TOD attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
+
+Furthermore, @tab:eval-overall shows that the majority of the attacks found by our method are not contained in the ground truth. We conduct a manual analysis to evaluate, if these are false positives.
+
+#figure(
+  table(
+    columns: 4,
+    align: (left, right, right, right),
+    table.header([In ground truth], [TOD candidate], [TOD], [Attacker gain and victim loss]),
+    table.hline(),
+    [Yes], [115], [95], [85],
+    [No], [14,385], [2,864], [195]
+  ),
+  caption: flex-caption(
+    [Comparison of results with the baseline. The baseline consists of 5,601#todo[Note, that this is lower because we do not consider profit transactions] attacks. The first row shows, how many of the 5,601 attacks in the baseline were also found by our analysis at the individual stages. The second row shows the results that were found by only analysis, but are not contained in the baseline attacks.],
+    [Comparison of results with the baseline.],
+  ),
+  kind: table,
+)<tab:eval-overall>
+
+=== Manual analysis of attacks
+
+#todo[First check how many of them are related to WETH deposits (compare witnesses of false positives with true positives)]
+
+To evaluate, if an attack found by our method is indeed conforming to the properties defined earlier, we conduct following steps:
+
+- We manually parse logs from traces that contain relevant addresses
+- We compute attacker gain and victim loss properties
+- We verify the accuracy in the normal scenario by comparing Logs with Etherscan in normal scenario
+
+
+== Evaluation of TOD candidate mining
+
+In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates. We count the number of attacks from the ground truth that are in the TOD candidates before and after each filter. Therefore, we know how many of them were removed by which filter. In @tab:eval_mining, we see how many TOD candidates were left after applying each filter, and how many of those TOD candidates are attacks according to the ground truth.
+
+Most filters do not filter out any attack from the ground truth. While these filters did not remove any relevant TOD candidate w.r.t. the ground truth, they removed 500,141 other TOD candidates, thus significantly reducing the search space for further analysis.
+
+One attack was filtered because there is no collision between the accessed and modified states of $T_A$ and $T_B$. This is the case, because $T_B$ is part of block 11,300,000, but we only included state accesses and modifications for the 1,000 blocks prior to it and excluded the 1,001th block. For all other attacks, we found at least one collision.
+
+We filtered 2,063 attacks, where there are collisions between $T_A$ and $T_B$, however no same-value collision. Therefore, tx between them that modifies the same state.
+
+Further 2,212 indirect dependency.
+
+Further 1,210 limited collisions.
+
+For all these filters, ground truth attacks were (proportinally) more often removed than the average TOD candidate.
+
+#figure(
+  table(
+    columns: 5,
+    align: (left, right, right, right, right),
+    table.header(
+      [Filter name],
+      [TOD candidates after filtering],
+      [Filtered TOD candidates],
+      [Ground truth attacks after filtering],
+      [Filtered ground truth attacks],
+    ),
+    table.hline(),
+    [(unfiltered)], [], [], [5,601], [],
+    [Collision], [], [], [5,600], [1],
+    [Same-value collision], [638,313], [], [3,537], [2,063],
+    [Block windows], [422,384], [215,929], [3,537], [0],
+    [Block validators], [288,264], [134,120], [3,537], [0],
+    [Nonce collision], [220,687], [67,577], [3,537], [0],
+    [Code collision], [220,679], [8], [3,537], [0],
+    [Indirect dependency], [161,062], [59,617], [1,325], [2,212],
+    [Same senders], [100,690], [60,372], [1,325], [0],
+    [Recipient Ether transfer], [78,555], [22,135], [1,325], [0],
+    [Limited collisions per address], [17,300], [61,255], [199], [1,126],
+    [Limited collisions per code hash], [14,996], [2,304], [123], [76],
+    [Limited collisions per skeleton], [14,500], [496], [115], [8],
+  ),
+  caption: flex-caption(
+    [This table shows the application of all filters used to reduce the number of TOD candidates. Filters were applied from top to bottom and each row shows how many TOD candidates remained and were filtered. The unfiltered value is a lower bound, as we only calculated this number afterwards, and the calculation does not include write-write collisions.#todo[Caption]],
+    [TOD candidate filters evaluation],
+  ),
+  kind: table,
+)
+<tab:eval_mining>
+
+=== Evaluation of indirect dependency filters
+
+We check, if the indirect dependency suggested by TOD candidate dependency graph is also reflected by the TOD graph. We only consider paths with one intermediary transaction $T_X$. We check if both $(T_A, T_X)$ and $(T_X, T_B)$ are TOD.
+
+From the 4,275 attacks where we found an indirect dependency, 2,668 have an indirect dependency with exactly one intermediary transaction. We analyze those and got the results in. We considered TOD candidates before applying the indirect dependencies.
+
+From the attacks filtered by same-value collision, 943 out of (943+1120) have an indirect TOD dependency. From the attacks filtered by indirect dependencies, 376 out of (229+376) have an indirect TOD dependency.
+
+We conduct a manual analysis to understand, why this number is so low.
+
+=== Evaluation of duplicate limits
+
+We check, for how many of the attacks removed by duplicate limits there exist attacks that were not removed and cover the relevant collisions of the removed attack.
+
+/*
+```
+      1 rq1-3_search,removed_by_limit,covered,not_covered
+    115 True,False,True,False
+    507 True,True,False,True
+    703 True,True,True,False
+   4276 True,False,False,False
+```
+*/
+
+From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by other attacks.#todo[How many are partially covered?]#todo[Mention that covered by 1 tx is a lower bound, as we do not have a fancy algorithm.]#todo[Compare covered attacks: check if contracts/methods are the same.]
+
+We conduct NO manual analysis.
+
+== Evaluation of TOD detection
+
+We run the TOD detection on all the attacks from the ground truth.
+
+/*
+```
+      1 rq1-3_search,tod_overall,tod_approximation,property_gain_and_loss
+      2 True,False,True,True
+      2 True,True,False,False
+     30 True,False,True,False
+    146 True,False,False,True
+    449 True,True,True,False
+    596 True,False,False,False
+   4376 True,True,True,True
+```
+*/
+
+From the 5,601 attacks, we detect (4376+449+2 = 86%) TOD according to our overall definition and (4376+449+30+2 = 87%) according to our approximation.
+
+We manually analyze:
+- some of the 596 cases where everything reported False
+- some of the cases where overall TOD returned False
+
+
+== Evaluation of TOD attack analysis
+
+From the 5,601 attacks, we detect (4376+146+2 = 80%)
+
+we manually analyze:
+- some of the cases where property is false, but TOD is detected
+
+== Evaluation of Securify properties
+
+TOD Transfer: 626
+
+TOD Amount: 244
+
+TOD Receiver: 1
+
+For samples of each, we manually verify the witnesses.
+
+== Evaluation of ERC-20 Approval attacks
+
+ERC20-Approval: 15
+
+For all of them, we manually verify the witnesses and that the approval is independent of the transaction order.
 
 = Data availability
 TBD.
@@ -902,3 +1077,13 @@ TBD.
 The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
 
 For the RPC requests we used a public endpoint@noauthor_pokt_2024, which uses Erigon@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
+
+#todo[erigon/2.59.3/linux-amd64/go1.21.5]
+
+/* TODO
+Titel: Methodik im Vordergrund, nicht nur Tool/Analyse
+
+Mention, how cool it is, that we do not need to use smth like multiCall, but can separately analyze the transactions. This is contrary to previous works (is it???), where we either execute both transactions on top of each other, or we use LOG events and reasoning about them.
+
+
+Gain and Loss: Approximation for only B makes no sense, as $T_B$ does not contain tokens for the attacker
