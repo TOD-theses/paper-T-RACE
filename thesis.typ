@@ -5,8 +5,8 @@
 #show: thesis.with(
   font: "TeX Gyre Heros",
   title: (
-    en: "T-RACE: Tracing race condition attacks between Ethereum transactions.",
-    de: "T-RACE: Eine Analyse von race condition Angriffen bei Ethereum Transaktionen",
+    en: "Using state changes to detect and simulate transaction order dependency in Ethereum",
+    de: "Zustandsänderungen und Transaktionsreihenfolgenabhängigkeiten in Ethereum",
   ),
   subtitle: (:),
   lang: "en",
@@ -47,8 +47,8 @@
 #outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
 
 #todo[
-- Evolution: why page 41-42?
-- Nyx: S&P 2024
+  - Evolution: why page 41-42?
+  - Nyx: S&P 2024
 ]
 
 #bibliography("refs.bib")
