@@ -86,15 +86,25 @@ A different approach, the Proposer-Builder Separation (PBS) has become more popu
 == Transaction execution
 In Ethereum, transaction execution is deterministic. @wood_ethereum_2024[p.9] Transactions can access the world state and their block environment, therefore their execution can depend on these values. After executing a transaction, the world state is updated accordingly.
 
+#let changesEqual = sym.tilde.op
+#let changesDiffer = sym.tilde.not
+
+
 We denote a transaction execution as $sigma arrow.r^T sigma prime$, implicitly letting the block environment correspond to the transaction’s block. Furthermore, we denote the state change by a transaction $T$ as $Delta_T$, with $pre(Delta_T) = sigma$ being the world state before execution and $post(Delta sigma_T) = sigma prime$ the world state after the execution of $T$.
 
-For two state changes $Delta_T_A$ and $Delta_T_B$, we say that $Delta_T_A = Delta_T_B$ if the relative change of the values is equal. Formally, let $Delta_T_A = Delta_T_B$ be true if and only if:
+For two state changes $Delta_T_A$ and $Delta_T_B$, we say that $Delta_T_A changesEqual Delta_T_B$ if the relative change of the values is equal. Formally, let $Delta_T_A changesEqual Delta_T_B$ be true if and only if:
 
 $
-  forall K: post(Delta_T_A)(K) - pre(Delta_T_A)(K) &= post(Delta_T_B)(K) - pre(Delta_T_B)(K)
+  forall K: post(Delta_T_A)(K) - pre(Delta_T_A)(K) = post(Delta_T_B)(K) - pre(Delta_T_B)(K)
 $
 
-For example, if both $Delta_T_A$ and $Delta_T_B$ increase the balance at address $a$ by 10 Wei and make no other state changes, then $Delta_T_A = Delta_T_B$. If one of them would have modified it by e.g. 15 Wei or 0 Wei, or additionally modified some storage slot, we would have $Delta_T_A != Delta_T_B$.
+We extend this to compare sets of state changes by summing up the differences of the state changes on both sides. We let ${Delta_T_A_0, ..., Delta_T_A_n} changesEqual {Delta_T_B_0, ..., Delta_T_B_m}$ be true if and only if:
+
+$
+  forall K: sum_(i=0)^n post(Delta_T_A_i)(K) - pre(Delta_T_A_i)(K) = sum_(j=0)^m post(Delta_T_B_j)(K) - pre(Delta_T_B_j)(K)
+$
+
+For example, if both $Delta_T_A$ and $Delta_T_B$ increase the balance at address $a$ by 10 Wei and make no other state changes, then $Delta_T_A changesEqual Delta_T_B$. If one of them would have modified it by e.g. 15 Wei or 0 Wei, or additionally modified some storage slot, we would have $Delta_T_A changesDiffer Delta_T_B$.
 
 We define $sigma + Delta_T$ to be equal to the state $sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $post(Delta_T)$. Similarly, $sigma - Delta_T$ is equal to the state $sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $pre(Delta_T)$. Formally, these definitions are as follows:
 
@@ -352,14 +362,14 @@ To address the issues above, we will provide a more precise definition for TOD, 
 
   Let $Delta_(T_A)$ and $Delta_(T_B)$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the same block environment as they were executed on the blockchain.
 
-  We say, that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) != Delta_(T_B prime)$.
+  We say, that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) changesDiffer Delta_(T_B prime)$.
 ]
 
 Intuitively, we take the world state exactly before $T_B$ was executed, namely $sigma_(X_n)$. We then record the state changes $Delta_(T_B)$ from executing $T_B$ directly on $sigma_(X_n)$, the same way it was executed on the blockchain. Then we simulate what would have happened if $T_A$ was not executed before $T_B$ by removing its state changes and executing $T_B$ on $sigma_(X_n) - Delta_(T_A)$. If we observe different state changes for $T_B$ when executed with and without the changes of $T_A$, then we know that $T_A$ has an impact on $T_B$ and conclude TOD between $T_A$ and $T_B$. If there are no differences between $Delta_(T_B)$ and $Delta_(T_B prime)$, then $T_B$ behaves the same regardless of $T_A$ and there is no TOD.
 
-We chose to compare the two executions on the state changes $Delta_(T_B) != Delta_(T_B prime)$, rather than on the resulting states $sigma_B != sigma_B prime$, to detect a wider range of TODs. Comparing on $sigma_B != sigma_B prime$ would be sufficient to detect #emph[write-read] TODs, where the first transaction writes some state and the second transaction accesses this state and outputs a different result because of this. However, we are also interested in #emph[write-write] TODs, where $T_A$ writes some state and $T_B$ overwrites the same state with a different value, thus hiding the change by $T_A$.
+We chose to compare the two executions on the state changes $Delta_(T_B) changesDiffer Delta_(T_B prime)$, rather than on the resulting states $sigma_B != sigma_B prime$, to detect a wider range of TODs. Comparing on $sigma_B != sigma_B prime$ would be sufficient to detect #emph[write-read] TODs, where the first transaction writes some state and the second transaction accesses this state and outputs a different result because of this. However, we are also interested in #emph[write-write] TODs, where $T_A$ writes some state and $T_B$ overwrites the same state with a different value, thus hiding the change by $T_A$.
 
-For example, let $T_A$ write the value '1111' to some storage, s.t. we have $sigma_(X_n) (a)_s [k] = "'1111'"$, and $T_B$ write '2222' to the same storage, s.t. we have $sigma_B (a)_s [k] = "'2222'"$. When executing $T_B$ last, the world state would have '2222' at this storage slot, and when executing $T_A$ last, it would be '1111'. Therefore, the resulting world state is dependent on the order of $T_A$ and $T_B$. With our check of $Delta_T_B != Delta_(T_B prime)$ we include this scenario, because $Delta_T_B$ has a relative state change of $(2222 - 1111)$ for this storage slot, while $Delta_(T_B prime)$ has a relative state change of $(2222 - 0000)$, assuming it was '0000' before executing $T_A$.
+For example, let $T_A$ write the value '1111' to some storage, s.t. we have $sigma_(X_n) (a)_s [k] = "'1111'"$, and $T_B$ write '2222' to the same storage, s.t. we have $sigma_B (a)_s [k] = "'2222'"$. When executing $T_B$ last, the world state would have '2222' at this storage slot, and when executing $T_A$ last, it would be '1111'. Therefore, the resulting world state is dependent on the order of $T_A$ and $T_B$. With our check of $Delta_T_B changesDiffer Delta_(T_B prime)$ we include this scenario, because $Delta_T_B$ has a relative state change of $(2222 - 1111)$ for this storage slot, while $Delta_(T_B prime)$ has a relative state change of $(2222 - 0000)$, assuming it was '0000' before executing $T_A$.
 
 Our definition does not include #emph[read-write] TODs, i.e. we do not check whether executing $T_B$ before $T_A$ would have an impact on $T_A$. We focus on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to impact the second transaction, and ignore the other way round.
 
@@ -386,7 +396,7 @@ In some cases, the transaction order can impact the execution of the individual 
 
 For example, consider the case where both $T_A$ and $T_B$ multiply a value in a storage slot by 5. If the storage slot initially has the value 1, then executing both $T_A$ and $T_B$ will result in 25, regardless of the order. However, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ are different, as for one scenario the value changes from 1 to 5 and for the other from 5 to 25. Therefore, this would be classified as TOD by our definition.
 
-Note, that our definition is robust against the cases, where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equality uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B = Delta_(T_B prime)$.
+Note, that our definition is robust against the cases, where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta_(T_B prime)$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equality uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B changesEqual Delta_(T_B prime)$.
 
 ==== Indirect dependencies
 
@@ -751,7 +761,7 @@ After mining a list of TOD candidates, we now check, which of them are actually 
 
 == Overview
 
-For the normal scenario $T_A -> T_B$, we execute the transactions as they were executed on the blockchain, and record the state changes $Delta_T_A$ and $Delta_T_B$. For the reverse scenario $T_B -> T_A$, we execute $T_B$ as if $T_A$ has not been executed and record the state changes $Delta_(T_B prime)$. Then, according to our definition, the transactions are TOD if and only if $Delta_T_B != Delta_(T_B prime)$.
+For the normal scenario $T_A -> T_B$, we execute the transactions as they were executed on the blockchain, and record the state changes $Delta_T_A$ and $Delta_T_B$. For the reverse scenario $T_B -> T_A$, we execute $T_B$ as if $T_A$ has not been executed and record the state changes $Delta_(T_B prime)$. Then, according to our definition, the transactions are TOD if and only if $Delta_T_B changesDiffer Delta_(T_B prime)$.
 
 In order to evaluate the weakness explained in @sec:weakness-focus-on-tb, we also present an adapted TOD definition and analyze where the results of these definitions differ.
 
@@ -775,17 +785,17 @@ When comparing the state changes of a transaction, and they only differ in the b
 
 === Original definition
 
-Recalling our TOD definition from @sec:tod-definition, we say that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) != Delta_(T_B prime)$. In other words, we compare the state changes by $T_B$ in the normal scenario with the state changes in the reverse scenario.
+Recalling our TOD definition from @sec:tod-definition, we say that $(T_A , T_B)$ is TOD if and only if executing $(sigma_(X_n) - Delta_(T_A)) arrow.r^(T_B) sigma_B prime$ produces a state change $Delta_(T_B prime)$ with $Delta_(T_B) changesDiffer Delta_(T_B prime)$. In other words, we compare the state changes by $T_B$ in the normal scenario with the state changes in the reverse scenario.
 
 === Adapted definition <sec:adapted-definition>
 
 We want to evaluate, how much impact the weakness described in @sec:weakness-focus-on-tb has in practice. The weakness is, that we only compare the state changes of $T_B$ in both scenarios. Therefore, in the adapted definition we compare the state changes of both $T_A$ and $T_B$ in the normal scenario against the state changes of $T_A$ and $T_B$ in the reverse scenario.
 
-To get the state changes of $T_A$ in the reverse scenario, we execute $T_A$ on $sigma + Delta_(T_B prime)$, simulating $T_A$ after $T_B$.
+To get the state changes of $T_A$ in the reverse scenario, we execute $T_A$ on $sigma + Delta_(T_B prime)$, simulating $T_A$ after $T_B$. We then say, that the transactions are TOD according to the adapted definition if ${Delta_T_A, Delta_T_B} changesDiffer {Delta_(T_A prime), Delta_(T_B prime)}$.
 
 === State changes comparison
 
-@alg:tod-assessment shows how we check for TOD given the state changes. The black lines show the calculation for the original definition and the blue lines the modifications for the adapted definition. For each state key, we compute the change for this key in the normal scenario ($d_1$), and the change in the reverse scenario ($d_2$). If the changes differ between the scenarios, we have a TOD.
+@alg:tod-assessment shows how we check for TOD given the state changes. The black lines show the calculation for the original definition and the blue lines the modifications for the adapted definition. For each state key, we compute the change for this key in the normal scenario ($d_1$), and the change in the reverse scenario ($d_2$). If the changes differ between the scenarios, we have a TOD.#todo[Consider to remove this algorithm and/or mention that the RPC outputs the changed keys.].
 
 #figure(
   kind: "algorithm",
