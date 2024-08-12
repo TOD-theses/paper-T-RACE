@@ -5,6 +5,7 @@
 #let theorem = thmbox("theorem", "Theorem")
 #let definition = thmbox("definition", "Definition", inset: (x: 1.2em, top: 1em))
 #let proof = thmproof("proof", "Proof")
+#let proposition = thmbox("proposition", "Proposition")
 
 #let change(content) = text(fill: blue)[CHANGE: #content]
 

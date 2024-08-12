@@ -160,6 +160,26 @@
 	file = {Luu et al. - 2016 - Making Smart Contracts Smarter.pdf:/home/oaie/snap/zotero-snap/common/Zotero/storage/FGGTNMCD/Luu et al. - 2016 - Making Smart Contracts Smarter.pdf:application/pdf},
 }
 
+@inproceedings{ma_transracer_2023,
+	address = {New York, NY, USA},
+	series = {{ESEC}/{FSE} 2023},
+	title = {{TransRacer}: {Function} {Dependence}-{Guided} {Transaction} {Race} {Detection} for {Smart} {Contracts}},
+	isbn = {9798400703270},
+	shorttitle = {{TransRacer}},
+	url = {https://dl.acm.org/doi/10.1145/3611643.3616281},
+	doi = {10.1145/3611643.3616281},
+	abstract = {Smart contracts are programs that define rules for transactions running on blockchains. Since any qualified transaction sequence within the same block can be orchestrated by the blockchain miner, unexpected results may occur due to data races between transactions (called transaction races). Surprisingly, transaction races in smart contracts have not been fully investigated. To address this, we propose TransRacer, an automated approach and open-source tool that employs symbolic execution to detect transaction races in smart contracts. TransRacer analyzes function dependencies to identify transaction races hidden in specific contract states. It also generates witness transactions that can trigger such races. The experimental results on 50 real-world smart contracts show the effectiveness and efficiency of TransRacer: it detects 426 races in 255.9 minutes, including 149 race bugs leading to inconsistent states.},
+	urldate = {2024-03-03},
+	booktitle = {Proceedings of the 31st {ACM} {Joint} {European} {Software} {Engineering} {Conference} and {Symposium} on the {Foundations} of {Software} {Engineering}},
+	publisher = {Association for Computing Machinery},
+	author = {Ma, Chenyang and Song, Wei and Huang, Jeff},
+	month = nov,
+	year = {2023},
+	keywords = {Automated approach, Block-chain, Blockchain, Contract state, data race, Data races, Effectiveness and efficiencies, Ethereum, Model checking, Open source tools, Race detection, Real-world, slr-source-ace, slr-source-google-allintext, slr-source-scopus, smart contract, Smart contract, symbolic execution, Symbolic execution},
+	pages = {947--959},
+	file = {Ma et al. - 2023 - TransRacer Function Dependence-Guided Transaction.pdf:/home/oaie/snap/zotero-snap/common/Zotero/storage/H25ZTTED/Ma et al. - 2023 - TransRacer Function Dependence-Guided Transaction.pdf:application/pdf},
+}
+
 @inproceedings{li_finding_2019,
 	address = {Montreal, Quebec, Canada},
 	series = {{ICSE} '19},
@@ -596,4 +616,35 @@
 	language = {en},
 	urldate = {2024-08-12},
 	journal = {Ethereum Improvement Proposals},
+}
+
+@misc{rebuffo_erigon_2024,
+	title = {Erigon 3 ({Alpha} 1), the first all-in-one {EVM}-node on the efficient software frontier, is live.},
+	url = {https://erigon.tech/erigon-3-alpha-1-the-first-all-in-one-evm-node-on-the-efficient-software-frontier-is-live/},
+	abstract = {Erigon 3 completes a long phase of research and development and evolution and today is the best EVM client in the world, in every possible use case.},
+	language = {en-US},
+	urldate = {2024-08-12},
+	author = {Rebuffo, Paolo},
+	year = {2024},
+	note = {Section: Erigon},
+}
+
+@misc{noauthor_erigon_2023,
+	title = {Erigon {DB} {Walkthrough}},
+	url = {https://github.com/erigontech/erigon/blob/9b19cd542008d4de3eb267df3c606b2203284ed6/docs/programmers_guide/db_walkthrough.MD},
+	abstract = {Ethereum implementation on the efficiency frontier https://erigon.gitbook.io - erigontech/erigon},
+	language = {en},
+	urldate = {2024-08-12},
+	journal = {GitHub},
+	year = {2023},
+}
+
+@misc{noauthor_reth_2024-1,
+	title = {Reth {Database}},
+	url = {https://github.com/paradigmxyz/reth/blob/269ba896369c6fcea10e046a124a1992a56af300/docs/design/database.md},
+	abstract = {Modular, contributor-friendly and blazing-fast implementation of the Ethereum protocol, in Rust - paradigmxyz/reth},
+	language = {en},
+	urldate = {2024-08-12},
+	journal = {GitHub},
+	year = {2024},
 }
