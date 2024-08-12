@@ -14,9 +14,10 @@ TBD.
   analysis.
 - Theoretical discussion of TOD, including compilation of instructions
   that can cause TOD.
-- Methodology to mine potential TOD transaction pairs using only the RPC
-  interface of an archive node, rather than requiring local access to
-  it.
+- Methodology to mine and filter potential TOD transaction pairs using state changes
+- Methodology to simulate TOD transaction pairs
+- Evaluation on 3 different TOD attack definitions
+- this thesis can be reproduced using an archive node as a service via RPC, and does not require local execution of transactions.
 
 = Background
 This chapter gives background knowledge on Ethereum, that is helpful to follow the remaining paper. We also introduce a notation for these concepts.
@@ -121,6 +122,10 @@ A node consists of an #emph[execution client] and a #emph[consensus client]. The
 
 == RPC
 Execution clients implement the Ethereum JSON-RPC specification. @noauthor_ethereum_2024 This API gives remote access to an execution client, for instance to inspect the current block number with `eth_blockNumber` or to execute a transaction without committing the state via `eth_call`. In addition to the standardized RPC methods, we will also make use of methods in the debug namespace, such as `debug_traceBlockByNumber`. While this namespace is not standardized, several execution clients implement these additional methods @noauthor_go-ethereum_2024@noauthor_rpc_2024@noauthor_reth_2024.
+
+== Tokens
+
+In Ethereum, tokens are assets that are managed by contract accounts @chen_tokenscope_2019. The contract account stores which address holds how many tokens. There are several token standards that a contract account can implement, allowing standardized methods to interact with the token. For instance, the ERC-20 standard defines a `transfer` method, which allows the holder of a token to transfer the token to someone else @noauthor_erc-20_nodate.
 
 = Transaction order dependency
 In this chapter we discuss our definition of transaction order dependency (TOD) and various properties that come with it. We first lay out the idea of TOD with a basic definition and then show several shortcomings of this simple definition. Based on these insights, we construct a more precise definition that we will use for our analysis.
