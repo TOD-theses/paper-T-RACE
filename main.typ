@@ -139,9 +139,90 @@ So, starting from an initial state, when we execute first $T_A$ and then $T_B$ i
 We will refer to the execution order $T_A arrow.r T_B$, the one that occurred on the blockchain, as the #emph[normal] execution order, and $T_B arrow.r T_A$ as the #emph[reversed] execution order.
 
 == Motivating examples
-TBD.
 
-#todo("Add a motivating example for write-read TOD (e.g.  TOD-recipient) and for write-write TOD (e.g. ERC-20 approval).")
+To illustrate the problems that can arise with TOD, we show two examples of how it can be exploited.
+
+=== Secret leaking
+
+The first example is an attack that was discovered by @torres_frontrunner_2021#footnote[The attacker transaction is #link("https://etherscan.io/tx/0x15c0d7252fa93c781c966a98ab46a1c8c086ca2a0da7eb0a7a06c522818757da")[0x15c0d7252fa93c781c966a98ab46a1c8c086ca2a0da7eb0a7a06c522818757da] and the victim transaction is #link("https://etherscan.io/tx/0x282e4de019b59a50b89c1fdc2e70c4bbd45a7ad7f7a1a6d4807a587b5fcdcdf6")[0x282e4de019b59a50b89c1fdc2e70c4bbd45a7ad7f7a1a6d4807a587b5fcdcdf6].]. A simplified version with added comments of the vulnerable contract is presented below. It allows to deposit some Ether and lock it with a password and then anyone with the password can withdraw this Ether.
+
+```solidity
+contract PasswordEscrow {
+  struct Transfer {
+    address from;
+    uint256 amount;
+  }
+
+  mapping(bytes32 => Transfer) private transferToPassword;
+
+  function deposit(bytes32 _password) public payable {
+    // REMARK: this stores an entry for the password and saves the amount of Ether
+    // that was sent along the transaction
+    bytes32 pass = sha3(_password);
+    transferToPassword[pass] = Transfer(msg.sender, msg.value);
+  }
+
+  function getTransfer(bytes32 _password) public payable {
+    // REMARK: this verifies that an entry for the password exists
+    // and gets the amount of Ether that was deposited for the password
+    require(
+      transferToPassword[sha3(_password)].amount > 0
+    );
+    bytes32 pass = sha3(_password);
+    uint256 amount = transferToPassword[pass].amount;
+
+    transferToPassword[pass].amount = 0;
+
+    // REMARK: this transfers the Ether to the account that transaction's sender
+    msg.sender.transfer(amount);
+  }
+}
+```
+
+In the attack, the victim interacted with contract to deposit some Ether and lock it with a password. We ignore that the password is already public at this step, due to the fact that all transactions and their inputs are public in Ethereum. This could be fixed, e.g. by directly submitting `sha3(password)`, without resolving the TOD issue we discuss here.
+
+Later, the victim tried to withdraw this Ether by creating a transaction that calls `getTransfer` with the password. However, in the time between the transaction submission and the inclusion in a block, an attacker saw this transaction and determined that they can perform the Ether withdrawal themselves. They copied the transaction data and submitted their own transaction with a higher gas price than the victim transaction. The attackers transaction ended up being executed first and withdraw all the Ether.
+
+If we map this attack to our intuitive definition above, executing the attackers transaction first results in a higher balance for the attacker while executing the victims transaction first in a higher balance for the victim. Therefore, we would have $sigma prime != sigma prime prime$.
+
+=== ERC-20 multiple withdrawal
+
+As a second example, we explain the ERC-20 multiple withdrawal attack @rahimian_resolving_2019. Contracts that implement the ERC-20 token must include an `approve` method @noauthor_erc-20_nodate. This method takes as parameters a `spender` and a `value` and allows the `spender` to use `value` tokens from your account. For instance, when some account $a$ calls `approve(b, 0x1234)`, then `b` can transfer `0x1234` tokens from $a$ to any other account. If the `approve` method is called another time, the currently approved value is overwritten with the new value, regardless of the previous value.
+
+We illustrate that approvals can be TOD in @tab:erc20-multiple-withdrawal-example. In the benign scenario, $b$ spends one token and remains with two tokens that are still approved. However, in the attack scenario, $b$ spends 1 token and only afterwrads $a$ approves $b$ to spend three tokens. Therefore, $b$ remains with three tokens that are still approved.
+
+From the perspective of $a$, they only wanted to allow $b$ to use 3 tokens. However, when $b$ reacts to a pending approval, by executing a `transferFrom` before the approval is included in a block, then $b$ is able to use more than 3 tokens in total. This happened in the attack scenario, where the `transferFrom` is executed before the second `approve` got included in a block.
+
+#figure(
+  grid(
+    columns: 2,
+    gutter: 1em,
+    [*Benign scenario*], [*Attack scenario*],
+    table(
+      columns: 2,
+      align: (left, center),
+      table.header([Action], [Approved tokens]),
+      [`approve(b, 1)`], [1],
+      [`approve(b, 3)`], [3],
+      [`transferFrom(a, b, 1)`], [2],
+    ),
+    table(
+      columns: 2,
+      align: (left, center),
+      table.header([Action], [Approved tokens]),
+      [`approve(b, 1)`], [1],
+      [`transferFrom(a, b, 1)`], [0],
+      [`approve(b, 3)`], [3],
+    ),
+  ),
+  caption: flex-caption(
+    [A benign and an attack scenario for ERC-20 approvals.],
+    [A benign and an attack scenario for ERC-20 approvals.],
+  ),
+) <tab:erc20-multiple-withdrawal-example>
+
+
+
 
 == Relation to previous works <sec:tod-relation-previous-works>
 In @torres_frontrunner_2021 the authors do not provide a formal definition of TOD. However, for displacement attacks, they include the following check to detect if two transactions fall into this category:
@@ -209,6 +290,7 @@ When we analyze a pair of transactions $(T_A , T_B)$, it can be, that these are 
 
 ==== Code analysis of @zhang_combatting_2023
 
+#todo[In normal scenario, the block environment matches the transaction.]
 The block environment used to execute all transactions is contained in `ar.VmContext` and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment.
 
 ==== Code analysis of @torres_frontrunner_2021
@@ -220,6 +302,7 @@ While our preliminary TOD definition specifies that we start with the same $sigm
 
 ==== Code analysis of @zhang_combatting_2023
 
+#todo[What about normal scenario?]
 The initial state used to execute the first transaction is `ar.State`, which corresponds to the state directly before executing $T_a$. This includes all previous transactions of the same block.
 
 ==== Code analysis of @torres_frontrunner_2021
@@ -229,6 +312,31 @@ The emulator is initialized with the block `front_runner["blockNumber"]-1` and n
 Similar to the case with the block environment, this could lead to differences between the emulation and the results from the blockchain, when $T_A$ or $T_V$ are impacted by a previous transaction in the same block.
 
 == TOD definition <sec:tod-definition>
+
+/*
+
+I want to:
+
+first define:
+- normal scenario
+- reverse scenario
+
+Define:
+- TOD (two transactions are TOD)
+- is Delta_(T_A) + Delta_(T_B) ~ Delta_(T_A prime) + Delta_(T_B prime)
+  equivalent to sigma prime ~ sigma prime prime?
+  No, because there is no sigma_1 and sigma_2
+
+Define:
+- TOD approximation (two transactions are approximately TOD)
+
+Migration:
+- Delta comparison for write-write is only necessary for approximation. However, comparing states is not possible in normal definition either (?)
+- performance for TOD = 2* approximately TOD (?)
+- focus on impact on T_B
+
+- TOD detection
+*/
 
 To address the issues above, we will provide a more precise definition for TOD, that tries to be as close to the execution that happened on the blockchain, while also minimizing the impact of intermediary transactions on the analysis results.
 
@@ -305,7 +413,7 @@ For instance, if transaction $T_A$ modifies the balance of some address $a$, and
 With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. We do not include $R_(T_A) sect W_(T_B)$, as we also did not include read-write TOD in our TOD definition.
 
 == TOD candidates
-We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.
+We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.#todo(position: right)[Check if I use the $colls(T_A, T_B) != nothing$ later, or I forgot this part.]
 
 A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
