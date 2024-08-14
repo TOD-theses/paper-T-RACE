@@ -4,6 +4,7 @@
   set table(inset: 6pt, stroke: 0.4pt)
   show table.cell.where(y: 0): strong
   show: thmrules.with(qed-symbol: $square$)
+  show raw.where(block: true): set par(justify: false)
 
   rest
 }

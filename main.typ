@@ -316,20 +316,20 @@ When we analyze a pair of transactions $(T_A , T_B)$, it can be, that these are 
 
 ==== Code analysis of @zhang_combatting_2023
 
-#todo[In normal scenario, the block environment matches the transaction.]
-The block environment used to execute all transactions is contained in `ar.VmContext` and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment.
+In the normal scenario, the block environments used are the same as originally used for the transaction.
+
+For the reverse scenario, the block environment used to execute all transactions is contained in `ar.VmContext` and as such corresponds to the block environment of $T_a$. This means $T_a$ is executed in the same block environment as on the blockchain, while $T_v$ and the intermediary transactions may be executed in a different block environment than in the normal scenario.
 
 ==== Code analysis of @torres_frontrunner_2021
 
-In the file `displacement.py` line 151, we see that the emulator uses the same block environment for both transactions. Therefore, at least one of them will be executed in a different block environment than on the blockchain.
+In the file `displacement.py` line 151, we see that the emulator uses the same block environment for both transactions. Therefore, at least one of them will be executed in a different block environment than on the blockchain. However, it uses the same block environment for both scenarios, thus being consistently different to the execution on the blockchain.
 
 === Initial state $sigma$
 While our preliminary TOD definition specifies that we start with the same $sigma$ in both execution orders, it is up to interpretation which world state $sigma$ is.
 
 ==== Code analysis of @zhang_combatting_2023
 
-#todo[What about normal scenario?]
-The initial state used to execute the first transaction is `ar.State`, which corresponds to the state directly before executing $T_a$. This includes all previous transactions of the same block.
+Both, in the normal and reverse scenario, it uses the state directly before executing $T_a$, including the state changes of previous transactions within the same block. In the reverse scenario, this is the case as it uses `ar.State`.
 
 ==== Code analysis of @torres_frontrunner_2021
 
@@ -392,7 +392,6 @@ Consider the example of the ERC-20 multiple withdrawal from @sec:erc-20-multiple
 More formally, let $K$ be the state key that tracks how many tokens are approved by $a$ for $b$. Initially, one token is approved, therefore $sigma(K) = 1$. When executing $T_A$ in the normal scenario, where the attacker spends the one approved token, this changes to $sigma(K) = 0$. Therefore, we have $post(Delta_T_A)(K) - pre(Delta_T_A)(K) = -1$. Further executing $T_B$ in the normal scenario sets $sigma(K) = 3$, therefore $post(Delta_T_B)(K) - pre(Delta_T_B)(K) = 3$. When we add up these two state changes, we get a overall state change of $2$ for the state at key $K$. However, doing the same calculations for the reverse scenario results in a overall state change of $1$ for $K$, as $T_B$ first increases it by two and $T_A$ then reduces it by one. As the changes differ between the normal and reverse scenario, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta_(T_A prime), Delta_(T_B prime)}$ and $(T_A, T_B)$ is TOD.
 
 Similarly, for the password leaking example in @sec:password-leaking we showed that the execution order determines who can withdraw the stored Ether. If the attacker transaction is executed first, they withdraw the Ether. If it is executed second, the attacker does not withdraw any Ether. Therefore, the state change at the key `('balance', attacker)` depends on the transaction order and thus the transactions are TOD.
-#todo[read-write, write-write, write-read TODs]
 
 == TOD approximation
 
@@ -404,6 +403,7 @@ This paper focuses on detecting TOD attacks, in which the attacker tries to inse
   We say, that $(T_A, T_B)$ is approximately TOD if and only if $Delta_T_B changesDiffer Delta_(T_B prime)$.
 ]
 
+Theoretically, the assumption that an attack must influence the transaction it front-runs does not hold, as one can imagine an attack where the inserted transaction does not modify the transaction $T$. For example, if $T$ leaks a password that can be used to withdraw Ether but at the same time $T$ locks the contract that contains this Ether. An attacker could use the password to withdraw the Ether without necessarily influencing the execution of $T$ and would need front-run $T$ because of the contract locking. However, we are not aware of literature that showcases such attacks.
 
 == Definition strengths <sec:definition-strengths>
 
@@ -461,16 +461,20 @@ $
 
 For instance, if transaction $T_A$ modifies the balance of some address $a$, and $T_B$ accesses this balance, we have $colls(T_A, T_B) = ({ ('"balance"', a) } sect {('"balance"', a)}) union ({('"balance"', a)} sect emptyset) = {('"balance"', a)}$.
 
-With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. We do not include $R_(T_A) sect W_(T_B)$, as we also did not include read-write TOD in our TOD definition#todo[Update when the read-write TOD part is written.].
+With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. Following the assumption of the TOD approximation, we do not include $R_(T_A) sect W_(T_B)$, as in this case $T_A$ does not influence the execution of $T_B$.
 
 == TOD candidates
 We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.#todo(position: right)[Check if I use the $colls(T_A, T_B) != nothing$ later, or I forgot this part.]
 
-A TOD candidate is not necessarily TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
+A TOD candidate is not necessarily TOD or approximately TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
-Conversely, if $(T_A , T_B)$ is TOD, then $(T_A , T_B)$ must also a TOD candidate. For a write-write TOD, this is the case, because both $T_A$ and $T_B$ write to the same state, therefore we have $W_(T_A) sect W_(T_B) != nothing$. If we have a write-read TOD, then $T_B$ reads some state that $T_A$ wrote, hence $W_(T_A) sect R_(T_B) != nothing$.
+If $(T_A , T_B)$ is approximately TOD, then $(T_A , T_B)$ must also a TOD candidate. We can only have $Delta_T_B changesDiffer Delta_(T_B prime)$ if the state it accesses or modifies differs between the normal and reverse scenario. For this to happen, $T_A$ must modify this state, therefore $(W_T_A sect R_T_B) union (W_T_A sect W_T_B) != nothing$. This is equivalent to $colls(T_A, T_B) != nothing$, showing that $(T_A, T_B)$ must be a TOD candidate.
 
-Therefore, the set of all TOD transaction pairs is a subset of all TOD candidates.
+Therefore, the set of all approximately TOD transaction pairs is a subset of all TOD candidates.
+
+In the case that $(T_A, T_B)$ is TOD but not approximately TOD, the pair $(T_A, T_B)$ may be a TOD candidate but does not have to be one. Per the definitions of TOD and appxorimately TOD, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta_(T_A prime), Delta_(T_B prime)}$ but $Delta_T_B changesEqual Delta_(T_B prime)$ which implies that $Delta_T_A changesDiffer Delta_(T_A prime)$ must hold. Similar to the previous argument, $Delta_T_A changesDiffer Delta(T_A prime)$ implies $(R_T_A sect W_T_B) union (W_T_A sect W_T_B) != nothing$. However, in this case we cannot conclude $colls(T_A, T_B) != nothing$, as we excluded $R_T_A sect W_T_A$ from our collision definition.
+
+As such, the application of TOD candidates is aligned with the approximation of TOD, but not necessarily the exact TOD definition.
 
 == Causes of state collisions
 This section discusses, what can cause two transactions $T_A$ and $T_B$ to have state collisions. To do so, we show the ways a transaction can access and modify the world state.
@@ -569,7 +573,7 @@ We make use of the RPC method `debug_traceBlockByNumber`, which allows replaying
 
 By inspecting the source code from the tracers for Reth@paradigm_revm-inspectors_2024 and results from the RPC call, we found out, that for every touched account it always includes the account’s balance, nonce and code in the prestate. For instance, even when only the balance was accessed, it will also include the nonce in the prestate#footnote[I opened a #link("https://github.com/ethereum/go-ethereum/pull/30081")[pull request] to clarify this behaviour and now this is also reflected in the documentation@noauthor_go-ethereum_2024-1.]. Therefore, we do not know precisely which state has been accessed, which can be a source of false positives for collisions.
 
-We store all the accesses and modifications in a database and then query for accesses and writes that have the same state key, giving us a list of collisions. We then use these collisions to obtain a preliminary set of TOD candidates.
+We store all the accesses and modifications in a database and then query for accesses and writes that have the same state key. As in our definition of collisions, we only match state keys where the first transaction modifies the state. We then use the transactions that cause these collisions as a preliminary set of TOD candidates.
 
 == TOD candidate filtering
 Many of the TOD candidates from the previous section are not relevant for our further analysis. To prevent unnecessary computation and distortion of our results, we define which TOD candidates are not relevant and then filter them out.
@@ -876,9 +880,11 @@ To understand, in which cases the two definitions lead to different results, we 
 
 Our analysis shows, that 34 TOD candidates have been marked as approximately TOD but not TOD. As such, we have $Delta_T_B changesDiffer Delta_(T_B prime)$ and ${Delta_T_A, Delta_T_B} changesEqual {Delta_(T_A prime), Delta_(T_B prime)}$. In all of these cases, the differences of $T_A$ between the normal and reverse scenario balance out the differences of $T_B$ between the normal and reverse scenario. One example is discussed in detail in @app:analysis-of-definition-differences.
 
-Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta_(T_A prime), Delta_(T_B prime)}$ but $Delta_T_B changesEqual Delta_(T_B prime)$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.
+Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta_(T_A prime), Delta_(T_B prime)}$ but $Delta_T_B changesEqual Delta_(T_B prime)$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.#todo[Relate this to the assumption we made for the approximation. Check if these look like attacks maybe?]
 
-In total, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. This demonstrates that the theoretical weakness of the approximation discussed in @sec:weakness-focus-on-tb has practical impacts, but also that simulating $T_A$ in the reverse scenario can be omitted in a tradeoff for some accuracy.
+A weakness of this comparison is, that we use TOD candidates which are tailored for the TOD approximation and therefore TOD candidates that are TOD may be underrepresented. This could be the reason, why we found 34 TOD candidates that are approximately TOD but not TOD, while we only found 10 TOD candidates that are TOD but not approximately TOD.
+
+Nonetheless, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. In the case that TOD transaction pairs are underrepresented in our sample, this still demonstrates that most candidates labelled as approximately TOD are also TOD.
 
 = TOD attack characteristics <sec:tod-attack-characteristics>
 
