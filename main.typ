@@ -19,7 +19,7 @@ We show that our concepts can be implemented with endpoints exposed by an archiv
 Overall, our main contributions are:
 
 - A method to simulate a pair of transactions in two different orders.
-- A precise definition of TOD in the context of blockchain transaction analysis.
+- A precise definition of TOD in the context of blockchain transaction analysis and an approximative definition of TOD.
 - A compilation of EVM instructions that can cause TOD.
 - A method to mine and filter transaction pairs that are potentially TOD.
 
@@ -559,7 +559,7 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) ("'balance'", italic("sender")) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
 
-Given this property, it is clear that TOD alone is not a useful attack indicator, else we would say that every transaction has been attacked. In @sec:tod-attack-definitions we discuss more restrictive definitions.
+Given this property, it is clear that TOD alone is not a useful attack indicator, else we would say that every transaction has been attacked. In @sec:tod-attack-characteristics we discuss more restrictive definitions.
 
 = TOD candidate mining <cha:mining>
 In this chapter, we discuss how we search for potential TODs in the Ethereum blockchain. We use the RPC from an archive node to obtain transactions and their state accesses and modifications. Then we search for collisions between these transactions to find TOD candidates. Lastly, we filter out TOD candidates, that are not relevant to our analysis.
@@ -794,7 +794,7 @@ We ran the same experiment as in the previous section, but now with the addition
 
 After mining a list of TOD candidates, we now check, which of them are actually TOD. We first execute $T_A$ and $T_B$ according to the normal and reverse scenario defined in @sec:tod-simulation. Then we compare the state changes of the scenarios to apply the definitions for TOD and approximately TOD.
 
-== Transaction execution via RPC
+== Transaction execution via RPC <sec:transaction-execution-rpc>
 
 Let $(T_A, T_B)$ be our TOD candidate and split the block containing $T_B$ into following three sections:
 
@@ -806,7 +806,7 @@ For the normal scenario, we want to execute $T_B$ on $sigma_X_n$. Conceptually, 
 
 To execute $T_A$ in the normal scenario we use the same method as for $T_B$, except that we apply it on the block of $T_A$. For the reverse scenario, we take the state overrides from the normal scenario and add $Delta_(T_B prime)$ to it, simulating how $T_A$ behaves after executing $T_B$. This yields the state changes $Delta_(T_A prime)$.
 
-== Execution inaccuracy <sec:execution-accuracy>
+== Execution inaccuracy <sec:execution-inaccuracy>
 
 While manually testing this method, we found that using `debug_traceCall` with state overrides can lead to incorrect gas cost calculations with Erigon#footnote[See https://github.com/erigontech/erigon/issues/11254.]. To account for these inaccuracies, we compare the state changes from the normal execution via `debug_traceCall` with the state changes from `debug_traceBlockByNumber`. As we do not provide state overrides to `debug_traceBlockByNumber`, this method should yield the correct state changes and we can detect differences to our simulation.
 
@@ -880,15 +880,15 @@ Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, D
 
 In total, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. This demonstrates that the theoretical weakness of the approximation discussed in @sec:weakness-focus-on-tb has practical impacts, but also that simulating $T_A$ in the reverse scenario can be omitted in a tradeoff for some accuracy.
 
-= TOD attack definitions <sec:tod-attack-definitions>
+= TOD attack characteristics <sec:tod-attack-characteristics>
 
-Previously, we noted that the TOD definition is too general to be directly used for attack or vulnerability detection. In this section, we discuss several definitions that cover more specific cases than the general TOD definition.
+Previously, we noted that the TOD definition is too general to be directly used for attack or vulnerability detection. In this section, we discuss several characteristics of TOD attacks that cover more specific cases than the general TOD definition.
 
 == Attacker gain and victim losses <sec:gain-and-loss-property>
 
 In @sec:tod-relation-previous-works we already discussed, how the definition in @zhang_combatting_2023 relates to our preliminary definition of TOD. We now present their definition in more detail, and how we will apply it.
 
-They consider two transaction orderings: $T_A -> T_B -> T_P$ and $T_B -> T_A -> T_P$. The order of $T_A$ and $T_B$ corresponds to our normal and reverse scenario. The transaction $T_P$ is an optional third transaction, which sometimes is required for the attack. Our study only considers transaction pairs, therefore we will adapt their definition and remove $T_P$ from it. Analyzing their dataset, we find that only 2.2% of the attacks contain such a $T_P$ transaction, therefore we neglect only a small proportion of the covered attacks with this modification.
+They consider two transaction orderings: $T_A -> T_B -> T_P$ and $T_B -> T_A -> T_P$. In an attack, $T_A$ and $T_B$ are TOD. The transaction $T_P$ is an optional third transaction, which sometimes is required for the attack. Our study only considers transaction pairs, therefore we adapt their definition and remove $T_P$ from it. Analyzing their dataset, we find that only 2.2% of the attacks contain such a $T_P$ transaction, therefore we neglect only a small proportion of the covered attacks with this modification.
 
 They define an attack to occur when following two properties hold:
 
@@ -898,20 +898,36 @@ They define an attack to occur when following two properties hold:
 
 For financial gains and losses, they consider Ether and ERC-20, ERC-721, ERC-777, and ERC-1155 tokens.
 
-As an attacker, they consider either the sender of $T_A$ or the contract that $T_A$ calls (as this may be a contract designed to conduct attacks and temporarily store the profits). The victim is the sender of $T_B$.
+As an attacker, they consider either the sender of $T_A$ or the contract that $T_A$ calls. The rationale of using the contract that $T_A$ calls is, that it may be designed to conduct attacks and temporarily store the profits (see e.g. @torres_frontrunner_2022 for more details). The victim is the sender of $T_B$.
 
 === Formalization
 
-#let currencies = math.italic("Currencies")
-#let assetsNormal = math.italic("assets_normal")
-#let assets = math.italic("assets")
-#let assetsReverse = math.italic("assets_reverse")
 We now take their properties and formalize them. For simplicity we do not explicitly mention $T_A$ and $T_B$ in all formulas, but assume that we inspect a specific TOD candidate $(T_A, T_B)$.
 
-We use $currencies$#todo(position: right)[Maybe use Assets as by Halids paper] to denote a set of currencies that occur in $T_A$ and $T_B$ in both scenarios. As a currency, we consider Ether and contracts that implement one of the four token standards. Let $assetsNormal(C, a) in ZZ$ be the amount of currency $C$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(C, a)$ be the counterpart for the reverse scenario.
+==== Assets
 
-For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario only gets 2500 USDT for the 1 Ether, because the transaction order somehow impacted the conversion rate. The currencies that occur are $currencies = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
+#let assetsNormal = math.italic("assets_normal")
+#let assets = math.italic("Assets")
+#let assetsReverse = math.italic("assets_reverse")
 
+We use $assets$ to denote a set of assets that occur in $T_A$ and $T_B$ in any of the scenarios. As an asset, we consider Ether and the tokens that implement one of the standards ERC-20, ERC-721, ERC-777 or ERC-1155. Let $assetsNormal(A, a) in ZZ$ be the amount of assets $A$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(A, a)$ be the counterpart for the reverse scenario.
+
+For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2500 USDT, because the transaction order somehow impacted the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
+
+For Ether, we use the `CALL` and `CALLCODE` instructions to compute which addresses gained and lost Ether in a transaction. We do not include the transaction value, as this is not dependent on the transaction order and thus does not affect the definition. Furthermore, we ignore gas costs because of the inaccuracies described in @sec:execution-inaccuracy.
+
+To track the gains and losses for tokens we use following standardized events:
+- ERC-20: `Transfer(address _from, address _to, uint256 _value)`
+- ERC-721: `Transfer(address _from, address _to, uint256 _tokenId)`
+- ERC-777: `Minted(address operator, address to, uint256 amount, bytes data, bytes operatorData)`
+- ERC-777: `Sent(address operator,address from,address to,uint256 amount,bytes data,bytes operatorData)`
+- ERC-777: `Burned(address operator, address from, uint256 amount, bytes data, bytes operatorData)`
+- ERC-1155: `TransferSingle(address _operator, address _from, address _to, uint256 _id, uint256 _value)`
+- ERC-1155: `TransferBatch(address _operator, address _from, address _to, uint256[] _ids, uint256[] _values)`
+
+We only consider calls and event logs if their call context has not been reverted. In Ethereum, a reverted call context means that all the changes are discarded, therefore reverted calls and logs do not impact the gained or lost assets.
+
+==== Property
 #let gain = "Gain"
 #let onlyGain = "OnlyGain"
 #let loss = "Loss"
@@ -923,28 +939,32 @@ For example, assume an address $a$ converts 1 Ether to 3000 #link("https://ether
 #let recipient = "recipient"
 // TODO: italics probably inconsistent with other definitions
 
-For a successful attack, we define that in the normal scenario, the attacker makes more profits than in the reverse scenario, and the victim makes more losses than in the reverse scenario. We use following predicates to describe the existence of some gain or loss:
+For a successful attack, we define that in the normal scenario, the attacker makes more profits than in the reverse scenario, and the victim makes more losses than in the reverse scenario. We use following predicates to describe the existence of some asset gain or loss for an address $a$:
 
 $
-  gain(a) &<-> exists C in currencies: assetsNormal(C, a) > assetsReverse(C, a)\
-  loss(a) &<-> exists C in currencies: assetsNormal(C, a) < assetsReverse(C, a)\
+  gain(a) &<-> exists A in assets: assetsNormal(A, a) > assetsReverse(A, a)\
+  loss(a) &<-> exists A in assets: assetsNormal(A, a) < assetsReverse(A, a)\
 $
 
-Continuing the previous example, we would have $gain(a) = top$, as $a$ makes more USDT in the normal scenario than in the reverse scenario, and $loss(a) = bot$, as neither for Ether, nor for USDT $a$ makes less in the normal scenario than in the reverse scenario.
+Continuing the previous example of Ether to USDT token conversion, we would have $gain(a) = top$, as $a$ makes more USDT in the normal scenario than in the reverse scenario, and $loss(a) = bot$, as neither for Ether, nor for USDT $a$ has less assets in the normal scenario than in the reverse scenario.
 
-However, we also need to consider the case, where both $gain(a)$ and $loss(a)$ are true. For instance, maybe the attacker gains more tokens but also pays more Ether in the normal scenario. It is not trivial to measure arbitrary tokens in Ether, therefore we cannot determine if $a$ made a financial profit or loss in this case. To avoid such cases, we introduce following two predicates:
+However, we also need to consider the case, where both $gain(a)$ and $loss(a)$ are true. For instance, maybe the attacker gains more tokens but also pays more Ether in the normal scenario. It is not trivial to measure arbitrary tokens in Ether, therefore we cannot determine if the lost Ether outweighs the gained tokens. To avoid such cases, we introduce following two predicates:
 
 $
   onlyGain(a) &<-> gain(a) and not loss(a)\
   onlyLoss(a) &<-> loss(a) and not gain(a)\
 $
 
-With these, we can define an attack to occur when the attacker has only advantages in the normal scenario compared to the reverse scenario, and the victim has only disadvantages. As explained above, the attacker can be either the sender or the recipient of $T_A$:
+Note, that this can only consider assets we explicitly modelled. In the case, that $a$ loses some asset that is not modelled, $onlyGain(a)$ can still be true. This is a limitation when not all relevant assets that occur in $T_A$ and $T_B$ are modelled.
+
+With $onlyGain$ and $onlyLoss$ we can define an attack to occur when the attacker has only advantages in the normal scenario compared to the reverse scenario, and the victim has only disadvantages:
 
 $
   attack <-> (&onlyGain(sender(T_A)) or onlyGain(recipient(T_A)))\
   and &onlyLoss(sender(T_B))
 $
+
+We want to note that the definition by @zhang_combatting_2023 is not explicit on how different kinds of assets are compared. As such, our formalization may vary from their intention and implementation. However, this is a best effort to match their implementation and also the definitions of a subsequent work@zhang_nyx_nodate#footnote[We referred to the tests in `profit_test.go` @zhang_erebus-redgiant_2023 and Appendix A of @zhang_nyx_nodate.].
 
 #todo[
   - token background
@@ -960,9 +980,12 @@ The authors of Securify describe three TOD properties: @tsankov_securify_2018
 - *TOD Amount*: "[...] the amount of ether transferred depends on the transaction ordering"
 - *TOD Receiver*: "[...] the recipient of the ether transfer might change, depending on the transaction ordering"
 
-For Ether transfers, they consider only `CALL` instructions, which have a `value` parameter to denote the amount of Ether that should be transferred, and an `address` parameter to denote the recipient of the Ether transfer.
+For Ether transfers, they consider only `CALL` instructions. We also use `CALLCODE` instructions, as these can be used to transfer Ether similar to `CALL`s.
+
+The properties can be applied by comparing the execution of a transaction in the normal with the reverse scenario. We formally the property by analyzing a single transaction in the normal and reverse scenario. We say that a property holds for $(T_A, T_B)$ if it holds for at least one of $T_A$ and $T_B$, i.e. at least one of the transactions shows attack characteristics.
 
 === Formalization
+
 #let executedInstructions = math.italic("Executions")
 #let location = math.italic("Loc")
 #let instruction = math.italic("Instruction")
@@ -973,14 +996,12 @@ For Ether transfers, they consider only `CALL` instructions, which have a `value
 
 #todo[Single transaction definition]
 
-When executing an instruction, we denote this as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. `CALL`. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses to the current address, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
+We denote the execution of an instruction as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses when executing the instruction, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
 
-We use grouping of instruction executions to define the TOD properties. This has the intended meaning, of taking a set of instruction executions and
+#let normalCalls = $F_N$
+#let reverseCalls = $F_R$
 
-#let normalCalls = $italic("Transfers")_N$
-#let reverseCalls = $italic("Transfers")_R$
-
-Let $normalCalls$ denote the `CALL` instruction executions with a positive value in the normal scenario and $reverseCalls$ the equivalent for the reverse scenario.#todo[Reverted calls]
+Let $normalCalls$ denote the `CALL` and `CALLCODE` instructions executions with a positive value (i.e. $inputs[2] > 0$) in the normal scenario and $reverseCalls$ the equivalent for the reverse scenario. We exclude calls that have been reverted.
 
 ==== TOD Transfer
 
@@ -996,14 +1017,13 @@ If there is a location and a value, where the number of `CALL`s differ between t
 
 $
   "TOD-Amount" <-> &not"TOD-Transfer"\
-  &and exists l o c, v: |{C in normalCalls | C_L = l o c and C_v = v}| != |{
-    C in reverseCalls | C_L = l o c and C_v = v
-  }|
+  &and exists l o c, v:
+  |{C in normalCalls | C_L = l o c and C_v = v}| != |{C in reverseCalls | C_L = l o c and C_v = v}|
 $
 
 We exclude cases where TOD Transfer is fulfilled, as TOD Amount would always be fulfilled if TOD Transfer is fulfilled.
 
-For the case, that at maximum one `CALL` happens per location, we could directly compare the values used at each `CALL` between the normal and reverse scenario. However, with loops, multiple `CALL` executions can happen at the same location, which is the reason we choose the definition that compares the number of occurrences.
+For the case, that at maximum one call happens per location, we could directly compare the values used at each call between the normal and reverse scenario. However, with loops, multiple call executions can happen at the same location, which is the reason we choose the definition that compares the number of occurrences.
 
 For example, consider a case where in the normal scenario we have three `CALL`s at the same location $l$, two with value 5 and one with value 6, but in the reverse scenario we have only one `CALL` with value 5 and one with value 6. For location $l$ and value 5 two `CALL`s exist in the normal scenario, but only one in the reverse scenario, therefore TOD Amount is fulfilled.
 
@@ -1018,12 +1038,31 @@ $
   }|
 $
 
-== ERC-20 Approval
+== ERC-20 multiple withdrawal
 
-TBD.
+Finally, we also consider ERC-20 multiple withdrawal attacks, which we already discussed in @sec:erc-20-multiple-withdrawal. The ERC-20 standard defines that following events must be emitted when an approval takes place and when tokens are transferred@noauthor_erc-20_nodate.
 
-= Trace analysis
-TBD.
+#let transfer = math.italic("Transfer")
+#let approval = math.italic("Approval")
+
+- `Approval(address _owner, address _spender, uint256 _value)`
+- `Transfer(address _from, address _to, uint256 _value)`
+
+As a pattern to detect ERC-20 multiple withdrawal attacks we require following conditions to be true:
++ Executing $T_A$ in the normal scenario must emit a $transfer(v, a, x)$ event at address $t$.
++ Executing $T_B$ in the normal scenario must emit a $approval(v, a, y)$ event at address $t$.
++ Executing $T_B$ in the reverse scenario must emit a $approval(v, a, y)$ event at address $t$.
+
+The variable $v$ represents the attacker address, $v$ the victim address $x$ the transferred value and $y$ the approved value. As previously, we require that the events are not reverted.
+
+As shown in @tab:erc20-multiple-withdrawal-example, executions of `transferFrom` and `approve` can be TOD because `approve` simply overwrites the currently approved value with the new approved value. While this behaviour is standardized in @noauthor_erc-20_nodate, other methods may also change the approval and emit `Approval` events, e.g. by making a relative increase rather than overwriting. To ensure that there is indeed an overwrite, we require that the approval in the normal scenario is equal to the one in the reverse scenario. If there was a relative change of the approval, the approved value $y$ would differ.
+
+
+== Trace analysis
+
+To check for the TOD characteristics, we use the same approach to compute state overrides for the normal and reverse scenario as in @sec:transaction-execution-rpc. The `debug_traceCall` method allows to define a custom tracer in Javascript that can process each execution step. We use this tracer to track `CALL` instructions and emitted token events.
+
+The javascript tracer is described in @app:javascript-tracer. When executing a transaction, it returns all non-reverted `CALL`, `CALLCODE`, `LOG0`, `LOG1`, `LOG2`, `LOG3` and `LOG4` instructions and their inputs. We parse the call instructions to obtain Ether changes and the log instructions for token changes and ERC-20 approvals. The results are used to check for the previously defined characteristics.
 
 = Evaluation
 
@@ -1208,6 +1247,8 @@ ERC20-Approval: 15
 
 For all of them, we manually verify the witnesses and that the approval is independent of the transaction order.
 
+Also check if the creator of the transfer is the victim or the attacker.
+
 = Data availability
 TBD.
 
@@ -1222,9 +1263,7 @@ TBD.
 == Experiment setup
 The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
 
-For the RPC requests we used a public endpoint@noauthor_pokt_2024, which uses Erigon@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
-
-#todo[erigon/2.59.3/linux-amd64/go1.21.5]
+For the RPC requests we used a public endpoint@noauthor_pokt_2024, which uses Erigon 2.59.3@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
 
 /* TODO
 Titel: Methodik im Vordergrund, nicht nur Tool/Analyse
