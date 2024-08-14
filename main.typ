@@ -3,21 +3,37 @@
 #import "utils.typ": *
 
 = Introduction
-TBD.
 
-#figure(caption: flex-caption([Overview#todo[Create an overview chart similar to this one]], [WIP overview chart]))[
-  #image("graphics/components.png")
-]
+Ethereum is a blockchain that keeps track of a world state and updates this state by executing transactions. The transactions can execute so-called smart contracts, which are programs that are stored on the blockchain. As these programs are nearly Turing-complete, they can have vulnerabilities and become exploited.
 
-== Contributions
-- Precise definition of TOD in the context of blockchain transaction
-  analysis.
-- Theoretical discussion of TOD, including compilation of instructions
-  that can cause TOD.
-- Methodology to mine and filter potential TOD transaction pairs using state changes
-- Methodology to simulate TOD transaction pairs
-- Evaluation on 3 different TOD attack definitions
-- this thesis can be reproduced using an archive node as a service via RPC, and does not require local execution of transactions.
+This thesis focuses on transaction order dependence (TOD), which is a prerequisite for a kind of attack called front-running. TOD means that the state changes performed by transactions depends on the order in which the transactions are executed. In a front-running attack, an attacker sees that someone is about to perform a transaction and then quickly inserts a transaction before it. Because of TOD, executing the attackers transaction before the victims transaction yields different state changes, likely beneficial to the attacker, than executing the victims transaction first and only afterwards the attackers transaction.
+
+This work proposes a method to take a pair of transactions that has been executed on the blockchain and to analyze it (1) in the same order as on the blockchain and (2) in a reversed order, where the originally first transaction is now executed last. When executing the transactions in both orders, we can compare their behaviours to see if they are TOD and also if it exhibits characteristics of a front-running attack.
+
+We use the state changes of transactions to calculate which world state we need to use for the execution of the transactions we analyze. This removes the need to execute intermediary transactions that were originally executed between the two transactions we analyze. Furthermore, our method also removes side effects that can occur between the first transaction and intermediary transactions when executing the different transaction orders.
+
+To be able to evaluate our transaction order simulation, we search for transaction pairs that are potentially TOD. To do so, we also use state changes to match transactions that access and modify the same state and define several filters to remove irrelevant transaction pairs. On these transaction pairs we use our simulation method to check if they are TOD and if they have characteristics of a front-running attack. We check for the characteristics of the ERC-20 multiple withdrawal attack @rahimian_resolving_2019, the TOD properties implemented by Securify @tsankov_securify_2018 and financial gains and losses@zhang_combatting_2023.
+
+We show that our concepts can be implemented with endpoints exposed by an archive node. We neither require custom modifications nor local access to an archive node. Also the execution of transactions is performed on the archive node.
+
+Overall, our main contributions are:
+
+- A method to simulate a pair of transactions in two different orders.
+- A precise definition of TOD in the context of blockchain transaction analysis.
+- A compilation of EVM instructions that can cause TOD.
+- A method to mine and filter transaction pairs that are potentially TOD.
+
+== Related works
+
+The studies by #cite(<zhang_combatting_2023>, form: "prose") and #cite(<torres_frontrunner_2021>, form: "prose") both detect and analyze front-running attacks that occurred on the Ethereum blockchain. As we discuss later, their approaches to simulate different transaction orders are not precisely defined and come with several drawbacks. Additionally, our work focuses on TOD, a prerequisite of front-running, rather than directly targeting front-running attacks. However, we also implement the attack definition by #cite(<zhang_combatting_2023>, form: "prose") to be able to compare our results with theirs.
+
+
+#cite(<daian_flash_2020>, form: "prose") detect a specific kind of front-running attack by observing transactions that get executed. They measure so-called arbitrage opportunities, where a single transaction can make net revenue. While this is TOD, as only the first transaction that uses an arbitrage opportunity makes revenue, they do not need to simulate the different transaction orders for their analysis. Similarly, #cite(<wang_impact_2022>, form: "prose") also study a type of front-running attack without simulating different transaction orders.
+
+
+#cite(<perez_smart_2021>, form: "prose") explicitly analyze transactions for TOD. They do so by recording for each transaction which storage it accessed and modified and then matching transactions where these overlap. Our work discusses the theoretical background of this approach and extends it to find transaction pairs that are potentially TOD is based on this approach.
+
+There are several other works that provide frameworks to analyze attack transactions in Ethereum @zhang_txspector_2020@wu_time-travel_2022@torres_frontrunner_2021@chen_soda_2020. None of these frameworks supports the simulation of transactions in different orders, as such we cannot directly use them to detect TOD. Regarding the use of archive nodes, an evaluation by #cite(<wu_time-travel_2022>, form: "prose") states that replaying transactions with them is slow, taking "[...] more than 47 min to replay 100 normal transactions", thus prompting a special framework for analysis. However, #cite(<ferreira_torres_eye_2021>, form: "prose") have shown that is indeed feasible to use archive nodes for attack detection. Our work follows them and evaluates the performance for simulation of different transaction orders using archive nodes.
 
 = Background
 This chapter gives background knowledge on Ethereum, that is helpful to follow the remaining paper. We also introduce a notation for these concepts.
@@ -39,14 +55,7 @@ Similar to @wood_ethereum_2024[p.3], we will refer to the shared state as #emph[
 - #emph[code]: For contract accounts, the code is a sequence of EVM
   instructions.
 
-We denote the world state as $sigma$, the account state of an address $a$ as $sigma (a)$ and the nonce, balance, storage and code as $sigma (a)_n$, $sigma (a)_b$, $sigma (a)_s$ and $sigma (a)_c$ respectively. For the value at a storage slot $k$ we write $sigma (a)_s [k]$. We will also use an alternative notation $sigma (K)$, where we combine the identifiers of a state value to a single state key $K$, which simplifies further definitions. We have the following equalities between the two notations:
-
-$
-  sigma(a)_n &= sigma(("'nonce'", a)) \
-  sigma(a)_b & = sigma(("'balance'", a)) \
-  sigma(a)_c & = sigma(("'code'", a)) \
-  sigma(a)_s[k] & = sigma(("'storage'", a, k))
-$
+We denote the world state as $sigma$ and the value at a specific #emph[state key] $K$ as $sigma(K)$. For the nonce, balance and code the state key denotes the state type and the account's address, written as $sigma (("'nonce'", a))$, $sigma (("'balance'", a))$ and and $sigma (("'code'", a))$ respectively. For the value at a storage slot $k$ we use $sigma(("'storage'", a, k))$.
 
 == EVM
 The Ethereum Virtual Machine (EVM) is used to execute code in Ethereum. It executes instructions, that can access and modify the world state. The EVM is Turing-complete, except that it is executed with a limited amount of #emph[gas] and each instruction costs some gas. When it runs out of gas, the execution will halt. @wood_ethereum_2024[p.14] For instance, this prevents execution of infinite loops, as it would use infinitely much gas and thus exceed the gas limit.
@@ -69,7 +78,7 @@ When the recipient address is given and a value is specified, this will be trans
 
 For every transaction the sender must pay a #emph[transaction fee]. This is composed of a #emph[base fee] and a #emph[priority fee]. Every transaction must pay the base fee. The amount of Wei will be reduced from the sender and not given to any other account. For the priority fee, the transaction can specify if, and how much they are willing to pay. This fee will be taken from the sender and given to the block validator, which is explained in the next section. @wood_ethereum_2024[p.8]
 
-We denote a transaction as $T$, sometimes adding a subscript $T_A$ to differentiate from another transaction $T_B$.
+We denote a transaction as $T$, sometimes adding a subscript $T_A$ to differentiate it from another transaction $T_B$.
 
 == Blocks
 The Ethereum blockchain consists of a sequence of blocks, where each block builds upon the state of the previous block. To achieve consensus about the canonical sequence of blocks in a decentralized network of nodes, Ethereum uses a consensus protocol. In this protocol, validators build and propose blocks to be added to the blockchain. @noauthor_gasper_2023 It is the choice of the validator, which transactions to include in a block, however they are incentivized to include transactions that pay high transaction fees, as they receive the fee. @wood_ethereum_2024[p.8]
@@ -127,7 +136,7 @@ $
   )
 $
 
-For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then $(sigma + Delta_T) ("0xabcd")_s [1234] = 100$ and $(sigma - Delta_T) ("0xabcd")_s [1234] = 0$. For all other storage slots we have $(sigma + Delta_T) (a)_s [k] = sigma (a)_s [k] = (sigma - Delta_T) (a)_s [k]$.
+For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then $(sigma + Delta_T) ("'storage'", "0xabcd", 1234) = 100$ and $(sigma - Delta_T) ("'storage'", "0xabcd", 1234) = 0$. For all other storage slots we have $(sigma + Delta_T) ("'storage'", a, k) = sigma ("'storage'", a, k) = (sigma - Delta_T) ("'storage'", a, k)$.
 
 == Nodes
 A node consists of an #emph[execution client] and a #emph[consensus client]. The execution client keeps track of the world state and the mempool and executes transactions. The consensus client takes part in the consensus protocol. For this work, we will use an #emph[archive node], which is a node that allows to reproduce the state and transactions at any block. @noauthor_nodes_2024
@@ -545,9 +554,9 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
 
 #proposition[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(italic("sender"))_b gt.eq v_0$. This requires, that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and $post(Delta_(T_A)) (italic("sender"))_b gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma("'balance'", italic("sender")) gt.eq v_0$. This requires, that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))("'balance'", italic("sender")) < v_0$ and $post(Delta_(T_A)) ("'balance'", italic("sender")) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
-  When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) (italic("sender"))_b < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
+  When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) ("'balance'", italic("sender")) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
 
 Given this property, it is clear that TOD alone is not a useful attack indicator, else we would say that every transaction has been attacked. In @sec:tod-attack-definitions we discuss more restrictive definitions.
