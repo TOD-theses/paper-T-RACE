@@ -7,10 +7,8 @@
 #let proof = thmproof("proof", "Proof")
 #let proposition = thmbox("proposition", "Proposition")
 
-#let change(content) = text(fill: blue)[CHANGE: #content]
-
 // some shortcuts
-#let pre = math.italic("prestate")
-#let post = math.italic("poststate")
-#let colls = math.italic("collisions")
-#let changedKeys = math.italic("changed_keys")
+#let pre = "prestate"
+#let post ="poststate"
+#let colls = "collisions"
+#let changedKeys = "changed_keys"
