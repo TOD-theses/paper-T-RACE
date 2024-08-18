@@ -1236,7 +1236,7 @@ From the 703 covered attacks, we have at least 504 attacks that are covered by a
 
 == Evaluation of TOD detection
 
-We run the TOD detection on all the attacks from the ground truth.
+To evaluate our TOD detection method, we run it on the attacks from the ground truth.
 
 /*
 ```
@@ -1251,48 +1251,33 @@ We run the TOD detection on all the attacks from the ground truth.
 ```
 */
 
-From the 5,601 attacks, we detect (4376+449+2 = 86%) TOD according to our overall definition and (4376+449+30+2 = 87%) according to our approximation.
+From the 5,601 attacks, our method finds that 4,827 are TOD and 4,857 approximately TOD. We do not compare the TOD detection with the approximation in detail, as we already did so in @sec:tod-detection, however this result shows that for the ground truth attacks we can use the approximation without missing attacks.
 
-We manually analyze:
-- some of the 596 cases where everything reported False
-- some of the cases where overall TOD returned False
+There are 774 attacks that our method misses. For 20 of those an error occurred while analyzing for TOD#footnote[18 of them are caused by a bug in Erigon, where it reports negative balances for accounts for some transactions (#link("https://github.com/erigontech/erigon/issues/9531")[fixed in v2.60.3]). 2 of them were caused by connection errors.] and for 296 we detected execution inaccuracies (see @sec:execution-inaccuracy) and stopped the analysis.
 
-Maybe check that the first divergence between normal and reverse is because of a write by $T_A$?
+From the remaining 458 attacks, we find that most have the metadata "out of gas" in the ground truth dataset. Attacks with this "out of gas" label account for 97.6% of the attacks we do not find, while they only account for 19.1% of the 5,601 attacks in the ground truth.
 
-// Let τ and τ f denote the two execution traces of Tv in the attack and attack-free scenarios, respectively. If τ throws an out-of-gas exception while τ f does not, A is considered a gas estimation griefing attack
-#todo[The out of gas attacks make up around 15% in the ground truth, but around 80% of the attacks we missed. We do we detect some of them?]
+=== Manual evaluation of attacks labelled "out of gas"
 
-== Exact analysis
+According to the dataset description, this label refers to the "gas estimation griefing attack" which is described in @zhang_combatting_2023. The authors consider such an attack to occur when $T_B$ in the normal scenarios runs out of gas while $T_B$ in the reverse scenario does not.
 
-Correct: 4827
+We manually inspect a sample of 20 attacks and find that in 12 attacks $T_B$ is indeed reverted according to Etherscan. In these cases, our analysis shows that $T_B$ is reverted in both scenarios. As $T_B$ also revertes in the reverse scenario, our analysis does not confirm the gas estimation griefing attack.
 
-Incorrect: 774
+In the remaining 8 cases, our method reports no reverts in either scenario. For one case, Etherscan reports that $T_B$ had an internal out of gas error, which was caught without reverting the whole transaction.
 
-From the 774 not found, 458 not TOD, 296 replay diverged and 20 error.
+Overall, it appears that attacks with this label do not necessarily fulfill the attacker gain and victim loss property. The dataset usually describes, with which tokens an attacker made profits and with which tokens a victim made losses. However, 347 of the 1,043 attacks with the "out of gas" label do not contain a description of the victim losses. Contrary, this description exists for all attacks without the "out of gas" label.
 
-Errors:
-- 2 because of connection error
-- 18 because Erigon reports negative prestate balance, leading to a negative request (https://github.com/erigontech/erigon/issues/9531)
+=== Manual evaluation of attacks not labelled "out of gas"
 
-From the 458 not TOD:
-- 447 "outOfGas": true
-- 11 not out of gas
+We manually check the remaining 11 attacks that our method does not report as TOD.
 
-=== Out of gas
+We check ift these are caused by bugs in the archive node by reruninng the analysis with a Reth archive node. In two cases, using Reth we report them as TOD because of the same balance changes as reported in the ground truth, showing the inaccuracies from @sec:execution-inaccuracy.
 
-From the 447 out of gas, for 33 attacks not witness is reported in the ground truth. As such, we do not know how they satisfy the atttack definition.
+// we could also verify, that the storage slots and balances modified by T_A are not accessed by T_B.
+Furthermore, we compare the traces of the instruction executions between the scenarios. For 8 attacks, the traces in the normal scenario are equal to those in the reverse scenario. By inspecting the state changes in Etherscan, we also rule out write-write TODs, where both transactions write to the same storage slot. As such, we consider these as not TOD.
 
-For the remaining 414 attacks, it may be caused by the execution inaccuracy, which leads to lower gas costs in our simulation. With lower gas costs, we may miss some out of gas errors.
+Finally, for one attack $T_B$ reverts in both scenarios. The ground truth dataset reports changes of a token in the reverse scenario, therefore our execution differs from theirs.
 
-We manually check for 20 of the attacks, if the normal scenario of $T_B$ had an out of gas error according to Etherscan. We do not check the attacker, as we expect that an attacker would correctly compute the gas costs. We also do not check the reverse scenario of $T_B$ as this would not make sense. And we technically cannot check the reverse scenario for $T_A$.
-
-=== Not out of gas
-
-We manually check the remaining 11 attacks that our method missed:
-
-- is the reported witness only for Ether? -> execution inaccuracy
-- are there differences between the normal and reverse traces? should they cause a TOD?
-- does Reth report it as TOD?
 
 == Evaluation of TOD attack analysis
 
@@ -1334,6 +1319,7 @@ TBD.
 The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
 
 For the RPC requests we used a public endpoint@noauthor_pokt_2024, which uses Erigon 2.59.3@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
+// reth/v1.0.4-106a0c7c/x86_64-unknown-linux-gnu
 
 /* TODO
 Titel: Methodik im Vordergrund, nicht nur Tool/Analyse
