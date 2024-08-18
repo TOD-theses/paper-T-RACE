@@ -447,7 +447,7 @@ For example, consider the case where both $T_A$ and $T_B$ multiply a value in a 
 
 Note that the approximation is robust against the cases, where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta'_T_B$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equivalence uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B changesEqual Delta'_T_B$.
 
-=== Indirect dependencies
+=== Indirect dependencies <sec:weakness-indirect-dependencies>
 
 An intuitive interpretation of our definition is that we compare $T_A -> T_(X_i) -> T_B$ with $T_(X_i) -> T_B$, i.e. reckon what happens if $T_A$ is not executed first, but last. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, not executing $T_A$ before the intermediary transactions may impact them and thus indirectly change the behaviour of $T_B$. Then we do not know if $T_A$ directly impacted $T_B$, or only through some interplay with intermediary transactions. Similarly, when we execute $T_A$ last and it behaves differently, we do not know if this is because of an interaction with $T_B$ or an intermediary transaction.
 
@@ -632,7 +632,7 @@ $
 
 With the example of 100 transactions modifying the balance of address $a$, when the first transaction sets the balance to 1234, it only has a write-write conflict with transactions where the balance of $a$ is exactly 1234 before the execution. If all transactions write different balances, this will reduce the amount of TOD candidates to $n - 1 = 99$.
 
-Apart from the performance benefit, this filter also removes many TOD candidates that are potentially indirectly dependent. For instance, let us assume that we removed the TOD candidate $(T_A , T_B)$. By definition of this filter, there must be some key $K$ with $post(Delta_(T_A)) (K) != pre(Delta_(T_B)) (K)$, thus some transaction $T_X$ must have modified the state at $K$ between $T_A$ and $T_B$. Therefore, we also have a collision (and TOD candidate) between $T_A$ and $T_X$, and between $T_X$ and $T_B$. This is a potential indirect dependency, which may lead to unexpected results as argued in @sec:weaknesses.
+Apart from the performance benefit, this filter also removes many TOD candidates that are potentially indirectly dependent. For instance, let us assume that we removed the TOD candidate $(T_A , T_B)$. By definition of this filter, there must be some key $K$ with $post(Delta_(T_A)) (K) != pre(Delta_(T_B)) (K)$, thus some transaction $T_X$ must have modified the state at $K$ between $T_A$ and $T_B$. Therefore, we also have a collision (and TOD candidate) between $T_A$ and $T_X$, and between $T_X$ and $T_B$. This is a potential indirect dependency, which may lead to unexpected results as argued in @sec:weakness-indirect-dependencies.
 
 ==== Block windows
 
@@ -652,7 +652,7 @@ We showed in @sec:relevant-collisions that nonce and code collisions are not rel
 
 ==== Indirect dependency
 
-As argued in @sec:weaknesses, indirect dependencies can cause unexpected results in our analysis, therefore we will filter TOD candidates that have an indirect dependency. We will only consider the case, where the indirect dependency is already visible in the normal order and accept that we potentially miss some indirect dependencies. Alternatively, we could also remove a TOD candidate $(T_A , T_B)$ when we there exists a TOD candidate $(T_A , T_X)$ for some intermediary transaction $T_X$, however this would remove many more TOD candidates.
+As argued in @sec:weakness-indirect-dependencies, indirect dependencies can cause unexpected results in our analysis, therefore we will filter TOD candidates that have an indirect dependency. We will only consider the case, where the indirect dependency is already visible in the normal order and accept that we potentially miss some indirect dependencies. Alternatively, we could also remove a TOD candidate $(T_A , T_B)$ when we there exists a TOD candidate $(T_A , T_X)$ for some intermediary transaction $T_X$, however this would remove many more TOD candidates.
 
 We already have a model of all direct (potential) dependencies with the TOD candidates. We can build a transaction dependency graph $G = (V , E)$ with $V$ being all transactions and $E = { (T_A , T_B) divides (T_A , T_B) in "TOD candidates" }$. We then filter out all TOD candidates $(T_A , T_B)$ where there exists a path $T_A , T_(X_1) , dots.h , T_(X_n) , T_B$ with at least one intermediary node $T_(X_i)$.
 
@@ -1088,33 +1088,38 @@ The Javascript tracer is described in @app:javascript-tracer. When executing a t
 = Evaluation
 
 /*
-We run our tool on blocks 11,299,000-11,300,000 (inclusive?), getting $X$ results.
+We manually checked positive instances:
+- attacker gain and victim loss: 20 that are not in the ground truth
+- TOD Transfer: sample of 20
+- TOD Amount: sample of 20
+- TOD Receiver: the 1 and only
+- ERC-20 multiple withdrawal: all 15
 
-We manually check positive instances:
-- gain and loss that are not in the ground truth
-  - compare Logs with Etherscan
-  - manually parse logs from traces that contain relevant addresses
-  - compute property
-
-We manually check negative instances (marked as negative):
-- gain and loss that are in the ground truth:
-  - take witness from the ground truth and evaluate with traces
-
-We evaluate why TOD candidates where excluded that are in the ground truth:
--
+We still need to:
+- work out TOD mining comparison against ground truth
+- check why ground truth witnesses were not found by TOD check
+- verify sample of TOD check?
+- check why ground truth witnesses were not found by attacker gain and victim loss
 */
 
-In this section, we evaluate the methods proposed above. As a ground truth, we use the dataset from @zhang_combatting_2023 that evaluates their method#todo[Method to detect attacker gain and victim loss attacks] on the blocks 11,299,000-11,300,000. We analyze the same set of blocks and evaluate where our results differ from the ground truth.
+In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as the ground truth to evaluate our TOD detection and the detection of the attacker gain and victim loss characteristic. For the Securify and ERC-20 multiple withdrawal characteristics we rely solely on a manual evaluation.
 
-First of, we combine the TOD candidate mining, the TOD detection and TOD attack analysis, and evaluate them as a single unit. Afterwards, we evaluate each component individually against the ground truth.
+We use the dataset from @zhang_combatting_2023 that evaluates the blocks 11,299,000 up to 11,300,000. They found 6,765 attacks from which 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, we indirectly also compare our results against the method of @torres_frontrunner_2021.
 
-== Overall evaluation
+First combine the TOD candidate mining, the TOD detection and TOD attack analysis to analyze this block range. This is discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.#todo[We check false positives also with the individual method.]
 
-We mined TOD candidates in the 1,000 blocks starting at 11,299,000 which resulted in 14,500 TOD candidates. From those, the TOD detection reported 2,959 as TOD with respect to our adapted definition. And finally, for 280 of those, an attacker gain and victim loss was found.
+For several of the manual evaluations, we let our tool output the traces of the normal and reverse scenario, containing each executed instructions. We can then compare the normal scenario, which should be equal to the execution that happened on the blockchain, with results shown on Etherscan. This can verify that our state calculation and transaction execution via RPC for the normal scenario is correct. The reverse scenario cannot be compared this way.
 
-We compare the TOD candidates, TODs and TOD attacks we found against the ground truth in @tab:eval-overall. The ground truth consists of 5,601 attacks#todo[without profit transaction attacks]. Our mining procedure marked 115 of those as TOD candidates. From these 115 TOD candidates, 95 were detected as TOD and of those 85 were detected as an attack. We see that we miss 98% of the ground truth attacks when mining the TOD candidates. However, from the TOD candidates we correctly mark 74% as TOD and TOD attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
 
-Furthermore, @tab:eval-overall shows that the majority of the attacks found by our method are not contained in the ground truth. We conduct a manual analysis to evaluate, if these are false positives.
+== Overall evaluation <sec:overall-evaluation>
+
+We mined TOD candidates in the 1,000 blocks starting at 11,299,000 which resulted in 14,500 TOD candidates. From those, the TOD detection reported 2,959 as TOD. For 280 of these transaction pairs we found an attacker gain and victim loss.
+
+We compare the TOD candidates, TODs and TOD attacks we found against the ground truth in @tab:eval-overall. Our mining procedure marks 115 of the attacks in the ground truth as TOD candidates. From the 115 TOD candidates, 95 are detected as TOD and of those 85 are marked as an attack.
+
+We we miss 98% of the ground truth attacks when mining the TOD candidates. The following steps miss another 26% of the attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
+
+This section focuses on the 195 attacks that are found by us, but are not part of the ground truth.
 
 #figure(
   table(
@@ -1126,38 +1131,45 @@ Furthermore, @tab:eval-overall shows that the majority of the attacks found by o
     [No], [14,385], [2,864], [195]
   ),
   caption: flex-caption(
-    [Comparison of results with the baseline. The baseline consists of 5,601#todo[Note that this is lower because we do not consider profit transactions] attacks. The first row shows, how many of the 5,601 attacks in the baseline were also found by our analysis at the individual stages. The second row shows the results that were found by only analysis, but are not contained in the baseline attacks.],
+    [Comparison of results with the 5,601 attacks from the ground truth. The first row shows, how many of the 5,601 attacks in the ground truth are also found by our analysis at the individual stages. The second row shows the results our method found, which are not in the ground truth.],
     [Comparison of results with the baseline.],
   ),
   kind: table,
 )<tab:eval-overall>
 
+=== Block window filter
+
+#cite(<zhang_combatting_2023>, form: "prose") only consider transactions within block windows of size three. If transactions are three more blocks apart from each other they are not part of their analysis. We use a block window of size 25, therefore finding more attacks.
+
+From the 195 attacks that are not in the ground truth only 19 are within a block window of size 3.
+
 === Manual analysis of attacks
 
-#todo[First check how many of them are related to WETH deposits (compare witnesses of false positives with true positives)]
+We manually evaluate the 19 attacks to check if the attacker gain and victim loss property holds. We perform following steps for each attack:
 
-To evaluate, if an attack found by our method is indeed conforming to the properties defined earlier, we conduct following steps:
++ We manually parse the execution traces of the normal and reverse scenario for calls and events related to the attacker and victim accounts.
++ We compute the attacker gain and victim loss property based on these calls and events.
++ For the normal scenario, we verify that the calls and logs for the attacker and victim accounts are equal to the ones that happened on the blockchain.
 
-- We manually parse logs from traces that contain relevant addresses
-- We compute attacker gain and victim loss properties
-- We verify the accuracy in the normal scenario by comparing Logs with Etherscan in normal scenario
+In all 19 cases, the manual evaluation shows that the attacker gain and victim loss property holds and that the relevant calls and logs in the normal scenario match those on the blockchain. However, we notice two shortcomings in our definition of the attacker gain and victim loss property.
 
+==== Definition shortcomings
+
+Firstly, we assumed that the transaction value is independent of the transaction order, because it is part of the transaction itself. However, when a transaction is reverted, the value is not sent to the receiver. Therefore, the #emph[transfer] of the transaction value may depend on the transaction order. If we considered the transaction value in the calculation, six of the 19 attacks would be a false positive.
+
+Secondly, in five cases we have a loss for the sender of $T_A$ (the attackers EOA), while we have only gains for the recipient of $T_A$ (considered the attackers bot in this case). Our definition considers the attacker gain fulfilled for the attackers bot and ignores the loss of the attackers EOA. If we considered them together, we may have different results in such cases.
 
 == Evaluation of TOD candidate mining
 
-In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates. We count the number of attacks from the ground truth that are in the TOD candidates before and after each filter. Therefore, we know how many of them were removed by which filter. In @tab:eval_mining, we see how many TOD candidates were left after applying each filter, and how many of those TOD candidates are attacks according to the ground truth.
+In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates and if the TOD candidate filters work as intended.
 
-Most filters do not filter out any attack from the ground truth. While these filters did not remove any relevant TOD candidate w.r.t. the ground truth, they removed 500,141 other TOD candidates, thus significantly reducing the search space for further analysis.
+We rerun the TOD candidate mining and count the number of attacks from the ground truth that are in the TOD candidates before and after each filter is applied. Therefore, we know how many of them were removed by which filter.
 
-One attack was filtered because there is no collision between the accessed and modified states of $T_A$ and $T_B$. This is the case, because $T_B$ is part of block 11,300,000, but we only included state accesses and modifications for the 1,000 blocks prior to it and excluded the 1,001th block. For all other attacks, we found at least one collision.
+In @tab:eval-mining, we see that most filters do not filter out any attack from the ground truth. However, they still filter out 500,141 other TOD candidates, thus significantly reducing the search space for further analysis without affecting the attacks we can find.
 
-We filtered 2,063 attacks, where there are collisions between $T_A$ and $T_B$, however no same-value collision. Therefore, tx between them that modifies the same state.
+Furthermore, @tab:eval-mining shows that only one attack is filtered because there is no collision between the accessed and modified states of $T_A$ and $T_B$. This TOD candidate is filtered, because the second transaction of the filtered TOD candidate is part of block 11,300,000, which is not part of the blocks we analyze#footnote[In @zhang_combatting_2023, it says that this dataset contains 1,000 blocks. Block 11,300,000 would be the $1,001$-th block.].
 
-Further 2,212 indirect dependency.
-
-Further 1,210 limited collisions.
-
-For all these filters, ground truth attacks were (proportionally) more often removed than the average TOD candidate.
+The filters "Same-value collision" and "Indirect dependency" filter 4,275 TOD candidates with potential indirect dependencies. Finally, our deduplication filters remove another 1,210 TOD candidates. We evaluate if these three filters fulfill their intention in the following subsections.
 
 #figure(
   table(
@@ -1191,35 +1203,36 @@ For all these filters, ground truth attacks were (proportionally) more often rem
   ),
   kind: table,
 )
-<tab:eval_mining>
+<tab:eval-mining>
 
 === Evaluation of indirect dependency filters
 
-We check, if the indirect dependency suggested by TOD candidate dependency graph is also reflected by the TOD graph. We only consider paths with one intermediary transaction $T_X$. We check if both $(T_A, T_X)$ and $(T_X, T_B)$ are TOD.
+The "Same-value collision" filter and the "Indirect dependency" filter both target TOD candidates with indirect dependencies, as these may lead to unexpected analysis results (see @sec:weakness-indirect-dependencies).
 
-From the 4,275 attacks where we found an indirect dependency, 2,668 have an indirect dependency with exactly one intermediary transaction. We analyze those and got the results in. We considered TOD candidates before applying the indirect dependencies.
+We evaluate, for how many of the removed attack TOD candidates $(T_A, T_B)$, there exists an intermediary transaction $T_X$, such that both $(T_A, T_X)$ and $(T_X, T_B)$ are TOD. In such cases, any reordering that moves $T_A$ after $T_X$ or $T_X$ after $T_B$ may influence how $T_A$ and $T_B$ execute. While our filters also remove indirect dependencies which require more than one intermediary transaction (e.g. $T_A -> T_X_1 -> T_X_2 -> T_B$), we limit our evaluation to only one intermediary transaction for performance reasons.
 
-From the attacks filtered by same-value collision, 943 out of (943+1120) have an indirect TOD dependency. From the attacks filtered by indirect dependencies, 376 out of (229+376) have an indirect TOD dependency.
+We rerun the TOD candidate mining until the "Indirect dependency" filter would be executed. For 1,720 of the 4,275 TOD candidates $(T_A, T_B)$ we evaluate, we find another two TOD candidates $(T_A, T_X)$ and $(T_X, T_B)$. These TOD candidates show a potential indirect dependency of $(T_A, T_B)$ with the one intermediary transaction $T_X$. We do not evaluate the remaining 2,555 TOD candidates, which either have an indirect dependency with multiple intermediary transactions, or have an indirect dependency where one of the TOD candidates $(T_A, T_X)$ or $(T_X, T_B)$ has already been filtered.
 
-We conduct a manual analysis to understand, why this number is so low.
+We run or TOD detection on the 1,720 $(T_A, T_X)$ TOD candidates and the 1,720 $(T_X, T_B)$ TOD candidates. We find that in 1,319 cases both $(T_A, T_X)$ and $(T_X, T_B)$ being TOD. In 159 cases at least one analysis failed and in the remaining 242 cases at least one of the TOD candidates $(T_A, T_X)$ or $(T_X, T_B)$ is not TOD.
+
+In summary, we show that in at least 1,319 of the 4,275 cases, where we filtered out a TOD candidate of an attack in the ground truth, there exists a transaction that is TOD with both $T_A$ and $T_B$ of this TOD candidate.
+
 
 === Evaluation of duplicate limits
 
-We check, for how many of the attacks removed by duplicate limits there exist attacks that were not removed and cover the relevant collisions of the removed attack.
+The intention of the filters "Limited collisions per address", "Limited collisions per code hash" and "Limited collisions per skeleton" is to reduce the amount of TOD candidates without reducing the diversity of the attacks we can find.
 
-/*
-```
-      1 rq1-3_search,removed_by_limit,covered,not_covered
-    115 True,False,True,False
-    507 True,True,False,True
-    703 True,True,True,False
-   4276 True,False,False,False
-```
-*/
+For our evaluation, we do not directly measure the diversity of the attacks. Instead, we evaluate how well the attacks that were not filtered cover the attacks that were filtered. To measure the coverage, we use collisions. We say, that a TOD candidate $(T_A, T_B)$ is covered by a set of TOD candidates ${(T_C_0, T_D_0), ..., (T_C_n, T_D_n)}$ if and only if following holds:
 
-From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by other attacks.#todo[How many are partially covered?]#todo[Mention that covered by 1 tx is a lower bound, as we do not have a fancy algorithm.]#todo[Compare covered attacks: check if contracts/methods are the same.]
+$
+  colls(T_A, T_B) subset.eq union.big_(0 <= i <= n) colls(T_C_i, T_D_i)
+$
 
-We conduct NO manual analysis.
+For the collisions, we only consider those that are still present after applying all previous filters, in particular the nonce, code and block validator filters.
+
+From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by the remaining attacks. Thus, if we combine the collisions of the 115 remaining attacks, we have the same collisions as if we included these 703 covered attacks.
+
+From the 703 covered attacks, we have at least 504 attacks that are covered by a single attack from the 115 remaining ones#footnote[We use a naive algorithm to detect collision coverage which does not minimize the required attacks for coverage. Thus, the number of attacks covered by a single other attack is a lower bound.].
 
 == Evaluation of TOD detection
 
@@ -1244,6 +1257,42 @@ We manually analyze:
 - some of the 596 cases where everything reported False
 - some of the cases where overall TOD returned False
 
+Maybe check that the first divergence between normal and reverse is because of a write by $T_A$?
+
+// Let τ and τ f denote the two execution traces of Tv in the attack and attack-free scenarios, respectively. If τ throws an out-of-gas exception while τ f does not, A is considered a gas estimation griefing attack
+#todo[The out of gas attacks make up around 15% in the ground truth, but around 80% of the attacks we missed. We do we detect some of them?]
+
+== Exact analysis
+
+Correct: 4827
+
+Incorrect: 774
+
+From the 774 not found, 458 not TOD, 296 replay diverged and 20 error.
+
+Errors:
+- 2 because of connection error
+- 18 because Erigon reports negative prestate balance, leading to a negative request (https://github.com/erigontech/erigon/issues/9531)
+
+From the 458 not TOD:
+- 447 "outOfGas": true
+- 11 not out of gas
+
+=== Out of gas
+
+From the 447 out of gas, for 33 attacks not witness is reported in the ground truth. As such, we do not know how they satisfy the atttack definition.
+
+For the remaining 414 attacks, it may be caused by the execution inaccuracy, which leads to lower gas costs in our simulation. With lower gas costs, we may miss some out of gas errors.
+
+We manually check for 20 of the attacks, if the normal scenario of $T_B$ had an out of gas error according to Etherscan. We do not check the attacker, as we expect that an attacker would correctly compute the gas costs. We also do not check the reverse scenario of $T_B$ as this would not make sense. And we technically cannot check the reverse scenario for $T_A$.
+
+=== Not out of gas
+
+We manually check the remaining 11 attacks that our method missed:
+
+- is the reported witness only for Ether? -> execution inaccuracy
+- are there differences between the normal and reverse traces? should they cause a TOD?
+- does Reth report it as TOD?
 
 == Evaluation of TOD attack analysis
 
