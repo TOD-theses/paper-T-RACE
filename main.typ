@@ -4,18 +4,14 @@
 
 /*
 Checklist:
-- [X] ~impact~ -> affect/influence
 - [ ] single and double quotes
-- [X] italic numbers
-- [X] , that -> that
 - [ ] past vs present
-- [X] ether -> Ether
 - [ ] reference after or before dot?
-- [X] upright font for fixed meanings
+- [ ] original/adapted -> approximately TOD / TOD (also in appendix)
 
-Questions:
-- characteristics vs properties vs attack definitions?
-
+12pt., maybe more space between lines
+important for references: the medium which published them, conference, year. If available, DOI
+D G Wood -> G Wood
 */
 
 = Introduction
@@ -72,7 +68,7 @@ Similar to @wood_ethereum_2024[p.3], we will refer to the shared state as #emph[
 - #emph[code]: For contract accounts, the code is a sequence of EVM
   instructions.
 
-We denote the world state as $sigma$ and the value at a specific #emph[state key] $K$ as $sigma(K)$. For the nonce, balance and code the state key denotes the state type and the account's address, written as $sigma (("'nonce'", a))$, $sigma (("'balance'", a))$ and $sigma (("'code'", a))$, respectively. For the value at a storage slot $k$ we use $sigma(("'storage'", a, k))$.
+We denote the world state as $sigma$ and the value at a specific #emph[state key] $K$ as $sigma(K)$. For the nonce, balance and code the state key denotes the state type and the account's address, written as $sigma(stateKey("nonce", a))$, $sigma(stateKey("balance", a))$ and $sigma(stateKey("code", a))$, respectively. For the value at a storage slot $k$ we use $sigma(stateKey("storage", a, k))$.
 
 == EVM
 The Ethereum Virtual Machine (EVM) is used to execute code in Ethereum. It executes instructions that can access and modify the world state. The EVM is Turing-complete, except that it is executed with a limited amount of #emph[gas] and each instruction costs some gas. When it runs out of gas, the execution will halt. @wood_ethereum_2024[p.14] This prevents infinite loops, as their execution exceeds the gas limit.
@@ -134,7 +130,7 @@ For example, if both $Delta_T_A$ and $Delta_T_B$ increase the balance at address
 
 We define $sigma + Delta_T$ to be equal to the state $sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $post(Delta_T)$. Similarly, $sigma - Delta_T$ is equal to the state $sigma$, except that every state that was changed by the execution of $T$ is overwritten with the value in $pre(Delta_T)$. Formally, these definitions are as follows:
 
-$ changedKeys(Delta) colon.eq {K \| pre(Delta)(K) != post(Delta) (K)} $
+$ changedKeys(Delta_T) colon.eq {K \| pre(Delta_T)(K) != post(Delta_T) (K)} $
 
 $
   (sigma + Delta_T) (
@@ -151,7 +147,7 @@ $
   )
 $
 
-For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then we have $changedKeys(Delta_T) = {("'storage'", "0xabcd", "1234")}$. Further, we have $(sigma + Delta_T) (("'storage'", "0xabcd", 1234)) = 100$ and $(sigma - Delta_T) (("'storage'", "0xabcd", 1234)) = 0$. For all other storage slots $k$ we have $(sigma + Delta_T) (("'storage'", a, k)) = sigma (("'storage'", a, k)) = (sigma - Delta_T) (("'storage'", a, k))$.
+For instance, if transaction $T$ changed the storage slot 1234 at address 0xabcd from 0 to 100, then we have $changedKeys(Delta_T) = {stateKey("storage", "0xabcd", "1234")}$. Further, we have $(sigma + Delta_T)(stateKey("storage", "0xabcd", 1234)) = 100$ and $(sigma - Delta_T)(stateKey("storage", "0xabcd", 1234)) = 0$. For all other storage slots $k$ we have $(sigma + Delta_T) (stateKey("storage", a, k)) = sigma(stateKey("storage", a, k)) = (sigma - Delta_T)(stateKey("storage", a, k))$.
 
 == Nodes
 A node consists of an #emph[execution client] and a #emph[consensus client]. The execution client keeps track of the world state and the mempool and executes transactions. The consensus client takes part in the consensus protocol. For this work, we will use an #emph[archive node], which is a node that allows to reproduce the state and transactions at any block. @noauthor_nodes_2024
@@ -405,7 +401,7 @@ Consider the example of the ERC-20 multiple withdrawal from @sec:erc-20-multiple
 
 More formally, let $K$ be the state key that tracks how many tokens are approved by $a$ for $b$. Initially, one token is approved, therefore $sigma(K) = 1$. When executing $T_A$ in the normal scenario, where the attacker spends the one approved token, this changes to $sigma(K) = 0$. Therefore, we have $post(Delta_T_A)(K) - pre(Delta_T_A)(K) = -1$. Further executing $T_B$ in the normal scenario sets $sigma(K) = 3$, therefore $post(Delta_T_B)(K) - pre(Delta_T_B)(K) = 3$. When we add up these two state changes, we get a overall state change of $2$ for the state at key $K$. However, doing the same calculations for the reverse scenario results in a overall state change of $1$ for $K$, as $T_B$ first increases it by two and $T_A$ then reduces it by one. As the changes differ between the normal and reverse scenario, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ and $(T_A, T_B)$ is TOD.
 
-Similarly, for the password leaking example in @sec:password-leaking we showed that the execution order determines who can withdraw the stored Ether. If the attacker transaction is executed first, they withdraw the Ether. If it is executed second, the attacker does not withdraw any Ether. Therefore, the state change at the key `('balance', attacker)` depends on the transaction order and thus the transactions are TOD.
+Similarly, for the password leaking example in @sec:password-leaking we showed that the execution order determines who can withdraw the stored Ether. If the attacker transaction is executed first, they withdraw the Ether. If it is executed second, the attacker does not withdraw any Ether. Therefore, the state change at the key $stateKey("balance", italic("attacker"))$ depends on the transaction order and thus the transactions are TOD.
 
 == TOD approximation <sec:tod-approximation>
 
@@ -474,7 +470,7 @@ $
   colls(T_A , T_B) = (W_(T_A) sect R_(T_B)) union (W_(T_A) sect W_(T_B))
 $
 
-For instance, if transaction $T_A$ modifies the balance of some address $a$, and $T_B$ accesses this balance, we have $colls(T_A, T_B) = ({ ('"balance"', a) } sect {('"balance"', a)}) union ({('"balance"', a)} sect emptyset) = {('"balance"', a)}$.
+For instance, if transaction $T_A$ modifies the balance of some address $a$, and $T_B$ accesses this balance, we have $colls(T_A, T_B) = ({ stateKey("balance", a) } sect {stateKey("balance", a)}) union ({stateKey("balance", a)} sect emptyset) = {stateKey("balance", a)}$.
 
 With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. Following the assumption of the TOD approximation, we do not include $R_(T_A) sect W_(T_B)$, as in this case $T_A$ does not influence the execution of $T_B$.
 
@@ -573,9 +569,9 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
 
 #proposition[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(("'balance'", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))("'balance'", italic("sender")) < v_0$ and $post(Delta_(T_A)) ("'balance'", italic("sender")) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(stateKey("balance", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))(stateKey("balance", italic("sender"))) < v_0$ and $post(Delta_(T_A))(stateKey("balance", italic("sender"))) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
-  When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) ("'balance'", italic("sender")) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
+  When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A))(("balance", italic("sender"))) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
 
 Given this property, it is clear that TOD alone is not a useful attack indicator, since every transaction would be considered as having been attacked. In @sec:tod-attack-characteristics, we discuss more restrictive definitions.
@@ -1275,7 +1271,7 @@ There are 774 attacks that our method misses. For 20 of those an error occurred 
 
 From the remaining 458 attacks, we find that most have the metadata "out of gas" in the ground truth dataset. Attacks with this "out of gas" label account for 97.6% of the attacks we do not find, while they only account for 19.1% of the 5,601 attacks in the ground truth.
 
-=== Manual evaluation of attacks labelled "out of gas"
+=== Manual evaluation of attacks labelled "out of gas" <sec:evaluation-out-of-gas>
 
 According to the dataset description, this label refers to the "gas estimation griefing attack" which is described in @zhang_combatting_2023. The authors consider such an attack to occur when $T_B$ in the normal scenarios runs out of gas while $T_B$ in the reverse scenario does not.
 
@@ -1299,20 +1295,13 @@ Finally, for one attack $T_B$ reverts in both scenarios. The ground truth datase
 
 == Evaluation of TOD attack analysis
 
-/*
-```
-      1 rq1-3_search,tod_overall,tod_approximation,property_gain_and_loss
-      2 True,False,True,True
-      2 True,True,False,False
-     30 True,False,True,False
-    146 True,False,False,True
-    449 True,True,True,False
-    596 True,False,False,False
-   4376 True,True,True,True
-```
-*/
+// TODO: why do we mark 10 of the 11 attacks we missed for TOD as attacks? Didn't we just claim that they are not TOD? Do they emit different events without storing different states?
 
-From the 5,601 attacks, we detect 4,524.#todo[How many of those are "out of gas"?]
+We run our TOD attack analysis on the 5,601 attacks from the ground truth. Our analysis reports an attacker gain and victim loss in 4,524 of the cases. In 19 cases we encountered the same errors as for the TOD checking. In further 152 cases, we detect execution inaccuracies. In the remaining 907 cases, our analysis runs without failures but reports a different results than in the ground truth.
+
+From these 907 cases, 850 are labelled as "out of gas" in the ground truth. As discussed in @sec:evaluation-out-of-gas, it seems that these do not necessarily fulfill the attacker gain and victim loss property. Therefore, we do not investigate these cases. We manually evaluate 20 out of the 56 cases without the "out of gas" label.
+
+=== Manual evaluation of attacks
 
 TBD.
 

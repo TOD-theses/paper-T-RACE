@@ -9,6 +9,7 @@
 
 // some shortcuts
 #let pre = "prestate"
-#let post ="poststate"
+#let post = "poststate"
 #let colls = "collisions"
 #let changedKeys = "changed_keys"
+#let stateKey(type, ..args) = [(‘#type’, #args.pos().join(","))]
