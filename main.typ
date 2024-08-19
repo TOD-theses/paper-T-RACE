@@ -479,7 +479,7 @@ For instance, if transaction $T_A$ modifies the balance of some address $a$, and
 With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifies some state and $T_B$ accesses the same state. With $W_(T_A) sect W_(T_B)$ we include write-write collisions, where both transactions write to the same state location, for instance to the same storage slot. Following the assumption of the TOD approximation, we do not include $R_(T_A) sect W_(T_B)$, as in this case $T_A$ does not influence the execution of $T_B$.
 
 == TOD candidates
-We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.#todo(position: right)[Check if I use the $colls(T_A, T_B) != nothing$ later, or I forgot this part.]
+We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.
 
 A TOD candidate is not necessarily TOD or approximately TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
 
@@ -895,7 +895,7 @@ To understand, in which cases the two definitions lead to different results, we 
 
 Our analysis shows that 34 TOD candidates have been marked as approximately TOD but not TOD. As such, we have $Delta_T_B changesDiffer Delta'_T_B$ and ${Delta_T_A, Delta_T_B} changesEqual {Delta'_T_A, Delta'_T_B}$. In all these cases, the differences of $T_A$ between the normal and reverse scenario balance out the differences of $T_B$ between the normal and reverse scenario. One example is discussed in detail in @app:analysis-of-definition-differences.
 
-Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.#todo[Relate this to the assumption we made for the approximation. Check if these look like attacks maybe?]
+Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.
 
 A weakness of this comparison is that we use TOD candidates which are tailored for the TOD approximation and therefore TOD candidates that are TOD may be underrepresented. This could be the reason, why we found 34 TOD candidates that are approximately TOD but not TOD, while we only found 10 TOD candidates that are TOD but not approximately TOD.
 
@@ -987,12 +987,6 @@ $
 
 We want to note that the definition by @zhang_combatting_2023 is not explicit on how different kinds of assets are compared. As such, our formalization may vary from their intention and implementation. However, this is a best effort to match their implementation and also the definitions of a subsequent work@zhang_nyx_nodate#footnote[We referred to the tests in `profit_test.go` @zhang_erebus-redgiant_2023 and Appendix A of @zhang_nyx_nodate.].
 
-#todo[
-  - token background
-  - example attack
-  - usage of logs to track tokens
-]
-
 == Securify TOD properties
 
 The authors of Securify describe three TOD properties: @tsankov_securify_2018
@@ -1014,8 +1008,6 @@ The properties can be applied by comparing the execution of a transaction in the
 #let contextAddr = math.italic("ContextAddress")
 #let codeAddr = math.italic("CodeAddress")
 #let pc = math.italic("ProgramCounter")
-
-#todo[Single transaction definition]
 
 We denote the execution of an instruction as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses when executing the instruction, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
 
@@ -1085,7 +1077,7 @@ To check for the TOD characteristics, we use the same approach to compute state 
 
 The Javascript tracer is described in @app:javascript-tracer. When executing a transaction, it returns all non-reverted `CALL`, `CALLCODE`, `LOG0`, `LOG1`, `LOG2`, `LOG3` and `LOG4` instructions and their inputs. We parse the call instructions to obtain Ether changes and the log instructions for token changes and ERC-20 approvals. The results are used to check for the previously defined characteristics.
 
-= Evaluation
+= Evaluation <sec:evaluation>
 
 /*
 We manually checked positive instances:
@@ -1106,7 +1098,7 @@ In this section, we evaluate the methods proposed above. We use a dataset from @
 
 We use the dataset from @zhang_combatting_2023 that evaluates the blocks 11,299,000 up to 11,300,000. They found 6,765 attacks from which 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, we indirectly also compare our results against the method of @torres_frontrunner_2021.
 
-First combine the TOD candidate mining, the TOD detection and TOD attack analysis to analyze this block range. This is discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.#todo[We check false positives also with the individual method.]
+First combine the TOD candidate mining, the TOD detection and TOD attack analysis to analyze this block range. This is discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.
 
 For several of the manual evaluations, we let our tool output the traces of the normal and reverse scenario, containing each executed instructions. We can then compare the normal scenario, which should be equal to the execution that happened on the blockchain, with results shown on Etherscan. This can verify that our state calculation and transaction execution via RPC for the normal scenario is correct. The reverse scenario cannot be compared this way.
 
@@ -1159,6 +1151,49 @@ Firstly, we assumed that the transaction value is independent of the transaction
 
 Secondly, in five cases we have a loss for the sender of $T_A$ (the attackers EOA), while we have only gains for the recipient of $T_A$ (considered the attackers bot in this case). Our definition considers the attacker gain fulfilled for the attackers bot and ignores the loss of the attackers EOA. If we considered them together, we may have different results in such cases.
 
+== Evaluation of Securify and ERC-20 multiple withdrawal characteristics
+
+In the overall analysis, we also analyze the 2,959 transaction pairs that are TOD for the Securify and ERC-20 multiple withdrawal characteristics.
+
+We find that 626 transaction pairs fulfill the TOD Transfer characteristic, 244 TOD Amount and 1 TOD Receiver. Moreover, we have 15 that fulfill our definition of ERC-20 multiple withdrawal. As the ground truth we use does not cover these characteristics, we manually samples of each.
+
+=== Manual evaluation of TOD Transfer
+
+We take a sample of 20 transaction pairs that fulfill TOD Transfer. Our tool outputs the locations at which there is a different amount of calls in the normal and reverse scenario. For each sample we verify the first location it shows for $T_A$ and $T_B$. To do so, we manually check the execution traces of the normal and reverse scenario for this location and extract the relevant calls. We further verify that these calls match the calls in the normal scenario are equal to those on the blockchain.
+
+We find that in all of the cases the TOD transfer property holds for $T_B$ and only in one case it holds additionally for $T_A$.
+
+In 9 of the cases, $T_B$ makes a `CALL` in the normal scenario and is reverted in the reverse scenario. As our definition only considers calls which are not reverted, these fulfill TOD Transfer.
+
+In 8 further cases, $T_B$ makes a `CALL` in the normal scenario but makes no `CALL` at this location in the reverse scenario. In the 3 remaining cases, $T_B$ makes a `CALL` in the reverse scenario but makes no `CALL` in the normal scenario at this location.
+
+We also observe that the locations are often the same. For instance, in five of the cases the location we analyze is the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`. When inspecting all 626 transaction pairs that fulfill TOD Transfer we find this location 86 times. Considering that we limit similar collisions to a maximum of 10, we often have different causes of TOD which however affect the same functionality.
+
+=== Manual evaluation of TOD Amount
+
+We take a sample of 20 transaction pairs that fulfill TOD Amount. Similar to the TOD Transfer evaluation, we manually verify the first location. For TOD Amount, we verify that in both scenarios there exists a call at this location, but with different values.
+
+The evaluation shows that the property holds in all cases for $T_B$ and in 3 cases also for $T_A$. In 12 cases the amount of Ether sent is increased in the reverse scenario and in 11 cases it is decreased.
+
+For this sample, the location of the call is 16 times at the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`.
+
+
+=== Manual evaluation of TOD Receiver
+
+We evaluate the one transaction pair for TOD Receiver similar to how we evaluate TOD Amount, except that we now verify if the receiver of the call changed. Our evaluation shows that this is indeed the case. By inspecting the traces, we can see that in the normal scenario the receiver addresses is loaded from a different storage slot than in the normal scenario. We did not investigate why a different storage slot is used.
+
+=== Manual evaluation of ERC-20 multiple withdrawal
+
+We evaluate all 15 transaction pairs where our tool reports a ERC-20 multiple withdrawal attack. Our tool outputs pairs of `Transfer` and `Approval` events that should fulfill the definition. We manually evaluate the first of these pairs, by verifying that the `Transfer` event exists in $T_A$ in the normal scenario and the `Approval` event exists in $T_B$ in the normal and reverse scenario. We further verify that the logs in the normal scenario are equal to those on the blockchain.
+
+While we confirm that all of them fulfill the definition we provide for the ERC-20 multiple withdrawal attack, none of them actually is an attack.
+
+==== Definition shortcomings
+
+Firstly, our definition does not require that the `Transfer` and `Approval` events must have positive values. In nine cases we find an `Approval` that approves 0 tokens and in one case we find a transfer of 0 tokens. These should be excluded from the definition.
+
+Moreover, in 14 cases $T_A$ contains an `Approval` event for the tokens which are transferred in $T_A$. As such, $T_A$ does not make use of any previously approved tokens, but approves the token use itself.
+
 == Evaluation of TOD candidate mining
 
 In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates and if the TOD candidate filters work as intended.
@@ -1198,7 +1233,7 @@ The filters "Same-value collision" and "Indirect dependency" filter 4,275 TOD ca
     [Limited collisions per skeleton], [14,500], [496], [115], [8],
   ),
   caption: flex-caption(
-    [This table shows the application of all filters used to reduce the number of TOD candidates. Filters were applied from top to bottom and each row shows how many TOD candidates remained and were filtered. The unfiltered value is a lower bound, as we only calculated this number afterwards, and the calculation does not include write-write collisions.#todo[Caption]],
+    [TOD candidate filters evaluation.#todo[Write caption.]],
     [TOD candidate filters evaluation],
   ),
   kind: table,
@@ -1234,22 +1269,10 @@ From the 1,210 attacks that were removed by duplicate limits, we have 703 that a
 
 From the 703 covered attacks, we have at least 504 attacks that are covered by a single attack from the 115 remaining ones#footnote[We use a naive algorithm to detect collision coverage which does not minimize the required attacks for coverage. Thus, the number of attacks covered by a single other attack is a lower bound.].
 
+
 == Evaluation of TOD detection
 
 To evaluate our TOD detection method, we run it on the attacks from the ground truth.
-
-/*
-```
-      1 rq1-3_search,tod_overall,tod_approximation,property_gain_and_loss
-      2 True,False,True,True
-      2 True,True,False,False
-     30 True,False,True,False
-    146 True,False,False,True
-    449 True,True,True,False
-    596 True,False,False,False
-   4376 True,True,True,True
-```
-*/
 
 From the 5,601 attacks, our method finds that 4,827 are TOD and 4,857 approximately TOD. We do not compare the TOD detection with the approximation in detail, as we already did so in @sec:tod-detection, however this result shows that for the ground truth attacks we can use the approximation without missing attacks.
 
@@ -1281,28 +1304,22 @@ Finally, for one attack $T_B$ reverts in both scenarios. The ground truth datase
 
 == Evaluation of TOD attack analysis
 
-From the 5,601 attacks, we detect (4376+146+2 = 80%)
+/*
+```
+      1 rq1-3_search,tod_overall,tod_approximation,property_gain_and_loss
+      2 True,False,True,True
+      2 True,True,False,False
+     30 True,False,True,False
+    146 True,False,False,True
+    449 True,True,True,False
+    596 True,False,False,False
+   4376 True,True,True,True
+```
+*/
 
-we manually analyze:
-- some of the cases where property is false, but TOD is detected
+From the 5,601 attacks, we detect 4,524.#todo[How many of those are "out of gas"?]
 
-== Evaluation of Securify properties
-
-TOD Transfer: 626
-
-TOD Amount: 244
-
-TOD Receiver: 1
-
-For samples of each, we manually verify the witnesses.
-
-== Evaluation of ERC-20 Approval attacks
-
-ERC20-Approval: 15
-
-For all of them, we manually verify the witnesses and that the approval is independent of the transaction order.
-
-Also check if the creator of the transfer is the victim or the attacker.
+TBD.
 
 = Data availability
 TBD.
@@ -1316,16 +1333,8 @@ TBD.
 TBD.
 
 == Experiment setup
-The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 16 GB swap file.
+The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 32 GB swap file.
 
-For the RPC requests we used a public endpoint@noauthor_pokt_2024, which uses Erigon 2.59.3@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
-// reth/v1.0.4-106a0c7c/x86_64-unknown-linux-gnu
+For the RPC requests we used a public endpoint@noauthor_pokt_2024#todo[And free account for @sec:evaluation], which uses Erigon 2.59.3@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
 
-/* TODO
-Titel: Methodik im Vordergrund, nicht nur Tool/Analyse
-
-Mention, how cool it is that we do not need to use smth like multiCall, but can separately analyze the transactions. This is contrary to previous works (is it???), where we either execute both transactions on top of each other, or we use LOG events and reasoning about them.
-
-
-Gain and Loss: Approximation for only B makes no sense, as $T_B$ does not contain tokens for the attacker
-*/
+#todo[reth/v1.0.4-106a0c7c/x86_64-unknown-linux-gnu]
