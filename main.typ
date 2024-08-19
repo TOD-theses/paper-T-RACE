@@ -1316,6 +1316,18 @@ From the 5,601 attacks, we detect 4,524.#todo[How many of those are "out of gas"
 
 TBD.
 
+== Performance evaluation
+
+The evaluation of the 1,000 blocks took a total of 75 minutes, averaging to 4.5 seconds per block.
+
+For the TOD candidate mining, we spent 41 minutes fetching the state changes of the 1,000 blocks and inserting them into a database, another 13 minutes to filter the TOD candidates and 3 minutes for other tasks.
+
+For the TOD detection and TOD attack analysis we fetch the state changes and transactions and store them in memory for faster access. Because the state changes are already in our RPC cache, these two steps combined only take 5 minutes.
+
+After fetching the state changes and transactions, we run the TOD detection and TOD attack analysis using 16 threads, enabling us to make multiple RPC requests in parallel. To check the 14,500 TOD candidates for TOD it took 11 minutes, an average of 44 milliseconds per TOD candidate. The attack analysis of the 2,959 TOD transaction pairs took 4 minutes, averaging to 77 milliseconds per analysis.
+
+Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as the their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
+
 = Data availability
 TBD.
 
