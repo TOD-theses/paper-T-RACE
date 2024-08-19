@@ -927,9 +927,9 @@ We now take their properties and formalize them. For simplicity, we do not expli
 
 ==== Assets
 
-#let assetsNormal = math.italic("assets_normal")
-#let assets = math.italic("Assets")
-#let assetsReverse = math.italic("assets_reverse")
+#let assetsNormal = "assets_normal"
+#let assets = $"Assets"(T_A, T_B)$
+#let assetsReverse = "assets_reverse"
 
 We use $assets$ to denote a set of assets that occur in $T_A$ and $T_B$ in any of the scenarios. As an asset, we consider Ether and the tokens that implement one of the standards ERC-20, ERC-721, ERC-777 or ERC-1155. Let $assetsNormal(A, a) in ZZ$ be the amount of assets $A$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(A, a)$ be the counterpart for the reverse scenario.
 
@@ -958,7 +958,6 @@ We only consider calls and event logs if their call context has not been reverte
 #let victim = "victim"
 #let sender = "sender"
 #let recipient = "recipient"
-// TODO: italics probably inconsistent with other definitions
 
 For a successful attack, we define that in the normal scenario, the attacker makes more profits than in the reverse scenario, and the victim makes more losses than in the reverse scenario. We use following predicates to describe the existence of some asset gain or loss for an address $a$:
 
@@ -1001,12 +1000,10 @@ The properties can be applied by comparing the execution of a transaction in the
 
 === Formalization
 
-#let executedInstructions = math.italic("Executions")
 #let location = math.italic("Loc")
 #let instruction = math.italic("Instruction")
 #let inputs = math.italic("Inputs")
 #let contextAddr = math.italic("ContextAddress")
-#let codeAddr = math.italic("CodeAddress")
 #let pc = math.italic("ProgramCounter")
 
 We denote the execution of an instruction as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses when executing the instruction, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
@@ -1055,8 +1052,8 @@ $
 
 Finally, we also consider ERC-20 multiple withdrawal attacks, which we already discussed in @sec:erc-20-multiple-withdrawal. The ERC-20 standard defines that following events must be emitted when an approval takes place and when tokens are transferred@noauthor_erc-20_nodate.
 
-#let transfer = math.italic("Transfer")
-#let approval = math.italic("Approval")
+#let transfer = `Transfer`
+#let approval = `Approval`
 
 - `Approval(address _owner, address _spender, uint256 _value)`
 - `Transfer(address _from, address _to, uint256 _value)`
@@ -1066,7 +1063,7 @@ As a pattern to detect ERC-20 multiple withdrawal attacks we require following c
 + Executing $T_B$ in the normal scenario must emit a $approval(v, a, y)$ event at address $t$.
 + Executing $T_B$ in the reverse scenario must emit a $approval(v, a, y)$ event at address $t$.
 
-The variable $v$ represents the attacker address, $v$ the victim address $x$ the transferred value and $y$ the approved value. As previously, we require that the events are not reverted.
+The variable $v$ represents the attacker address, $v$ the victim address $x$ the transferred value and $y$ the approved value. We require that the events are not reverted.
 
 As shown in @tab:erc20-multiple-withdrawal-example, executions of `transferFrom` and `approve` can be TOD because `approve` simply overwrites the currently approved value with the new approved value. While this behaviour is standardized in @noauthor_erc-20_nodate, other methods may also change the approval and emit `Approval` events, e.g. by making a relative increase rather than overwriting. To ensure that there is indeed an overwrite, we require that the approval in the normal scenario is equal to the one in the reverse scenario. If there was a relative change of the approval, the approved value $y$ would differ.
 
