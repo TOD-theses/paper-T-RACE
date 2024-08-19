@@ -11,11 +11,7 @@ Checklist:
 - [ ] past vs present
 - [X] ether -> Ether
 - [ ] reference after or before dot?
-- [ ] upright font for fixed meanings
-- [ ] state key tuple vs function call
-- [ ] intuitive definition -> preliminary definition
-- [ ] - Delta + Delta != 0?
-
+- [X] upright font for fixed meanings
 */
 
 = Introduction
@@ -224,7 +220,7 @@ In the attack, the victim interacted with contract to deposit some Ether and loc
 
 Later, the victim tried to withdraw this Ether by creating a transaction that calls `getTransfer` with the password. However, in the time between the transaction submission and the inclusion in a block, an attacker saw this transaction and determined that they can perform the Ether withdrawal themselves. They copied the transaction data and submitted their own transaction with a higher gas price than the victim transaction. The attackers' transaction ended up being executed first and withdraw all the Ether.
 
-If we map this attack to our intuitive definition above, executing the attackers' transaction first results in a higher balance for the attacker while executing the victims' transaction first in a higher balance for the victim. Therefore, we would have $sigma' != sigma''$.
+If we map this attack to our preliminary TOD definition above, executing the attackers' transaction first results in a higher balance for the attacker while executing the victims' transaction first in a higher balance for the victim. Therefore, we would have $sigma' != sigma''$.
 
 === ERC-20 multiple withdrawal <sec:erc-20-multiple-withdrawal>
 
@@ -274,19 +270,19 @@ In @torres_frontrunner_2021, the authors do not provide a formal definition of T
   [...] we run in a simulated environment first $T_A$ before $T_V$ and then $T_V$ before $T_A$. We report a finding if the number of executed EVM instructions is different across both runs for $T_A$ and $T_V$, as this means that $T_A$ and $T_V$ influence each other.
 ]
 
-Similar to our intuitive TOD definition, they execute $T_A$ and $T_V$ in different orders and check if it affects the result. In their case, they only check the number of executed instruction, instead of the resulting state. This misses attacks where the same instructions were executed, but the operands for these instructions in the second transaction changed because of the first transaction.
+Similar to our preliminary TOD definition, they execute $T_A$ and $T_V$ in different orders and check if it affects the result. In their case, they only check the number of executed instruction, instead of the resulting state. This misses attacks where the same instructions were executed, but the operands for these instructions in the second transaction changed because of the first transaction.
 
 In @zhang_combatting_2023, the authors define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a -> T_v -> T_a^p$ and $T_v -> T_a -> T_a^p$ and check if the execution order influences financial gains, which we will discuss in more detail in @sec:gain-and-loss-property.
 
 We note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. As we always execute $T_a^p$ last, and transaction execution is deterministic, it only gives a different result if the execution of $T_a$ and $T_v$ gave a different result. Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD.
 
 == Imprecise definitions
-Our intuitive definition of TOD, and the related definitions above, are not precise regarding the semantics of a reordering of transactions and their executions. This makes it impossible to apply exactly the same methodology without analyzing the source code related to the papers. We describe three issues, where the definition is not precise enough, and show how these were differently interpreted by the two papers.
+Our preliminary definition of TOD, and the related definitions above, are not precise regarding the semantics of a reordering of transactions and their executions. This makes it impossible to apply exactly the same methodology without analyzing the source code related to the papers. We describe three issues, where the definition is not precise enough, and show how these were differently interpreted by the two papers.
 
 For the analysis of the tools by @zhang_combatting_2023 and @torres_frontrunner_2021, we will use the current version of the source codes, @zhang_erebus-redgiant_2023 and @torres_frontrunner_2022, respectively.
 
 === Intermediary transactions
-To analyze a TOD $(T_A , T_B)$, we are interested in how $T_A$ affects $T_B$ in the normal order, and how $T_B$ affects $T_A$ in the reverse order. Our intuitive definition does not specify how to handle transactions that occur between $T_A$ and $T_B$, which we will name #emph[intermediary transactions].
+To analyze a TOD $(T_A , T_B)$, we are interested in how $T_A$ affects $T_B$ in the normal order, and how $T_B$ affects $T_A$ in the reverse order. Our preliminary definition does not specify how to handle transactions that occur between $T_A$ and $T_B$, which we will name #emph[intermediary transactions].
 
 Suppose that there is one transaction $T_X$ between $T_A$ and $T_B$: $sigma ->^(T_A) sigma_A ->^(T_X) sigma_(A X) ->^(T_B) sigma_(A X B)$. The execution of $T_B$ may depend on both, $T_A$ and $T_X$. When we are interested in the effect of $T_A$ on $T_B$, we need to define what happens with $T_X$.
 
@@ -328,7 +324,7 @@ We can conclude that @zhang_combatting_2023 executes all intermediary transactio
 In the file `displacement.py`, the lines 154-155 replay the normal execution order, and lines 158-159 the reverse execution order. They only execute $T_A$ and $T_V$ (in normal and reverse order), but do not execute any intermediate transactions.
 
 === Block environments
-When we analyze a pair of transactions $(T_A , T_B)$, it may happen that these are not part of the same block. The execution of the transactions may depend on the block environment they are executed in, for instance if they access the current block number. Thus, executing $T_A$ or $T_B$ in a block environment different from the blockchain may alter their behaviour. From our intuitive TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
+When we analyze a pair of transactions $(T_A , T_B)$, it may happen that these are not part of the same block. The execution of the transactions may depend on the block environment they are executed in, for instance if they access the current block number. Thus, executing $T_A$ or $T_B$ in a block environment different from the blockchain may alter their behaviour. From our preliminary TOD definition, it is not clear which block environment(s) we use when replaying the transactions in normal and reverse order.
 
 ==== Code analysis of @zhang_combatting_2023
 
@@ -374,7 +370,7 @@ The normal scenario represents the order $T_A -> T_B$. The state changes $Delta_
 The reverse scenario models the order $T_B -> T_A$. As $T_B$ now occurs before $T_A$, we execute $T_B$ on a state that does not contain the changes of $T_A$. We do so, by taking the world state exactly before executing $T_B$, namely $sigma_X_n$, and then removing the state changes of $T_A$ by computing $sigma_X_n - Delta_T_A$. Executing $T_B$ on $sigma_X_n - Delta_T_A$ gives us the state change $Delta'_T_B$. To model the execution of $T_A$ after $T_B$, we take the state $sigma$ on which $T_A$ was originally executed and add the state changes $Delta'_T_B$.
 
 /*
-Additionally, for the special case that $T_A$ and $T_B$ do not have intermediary transactions, we can compute the states we would get from the intuitive definition using the normal and reverse scenarios:
+Additionally, for the special case that $T_A$ and $T_B$ do not have intermediary transactions, we can compute the states we would get from the preliminary definition using the normal and reverse scenarios:
 
 #proposition[
   Consider a sequence of transactions, with $sigma$ being the world state right before $T_A$ and the following two execution orders:
@@ -573,7 +569,7 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
 
 #proposition[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma("'balance'", italic("sender")) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))("'balance'", italic("sender")) < v_0$ and $post(Delta_(T_A)) ("'balance'", italic("sender")) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(("'balance'", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))("'balance'", italic("sender")) < v_0$ and $post(Delta_(T_A)) ("'balance'", italic("sender")) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A)) ("'balance'", italic("sender")) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
