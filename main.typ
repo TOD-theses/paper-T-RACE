@@ -617,7 +617,7 @@ The "Block windows", "Same senders" and "Recipient Ether transfer" filters have 
 === Filters
 
 ==== Same-value collisions
-When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction has a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $frac(n^2 - n, 2) = 4950$ TOD candidates.
+When we have many transactions that modify the same state, e.g. the balance of the same account, they will all have a write-write conflict with each other. The number of TOD candidates grows quadratic with the number of transactions modifying the same state. For instance, if 100 transactions modify the balance of address $a$, the first transaction has a write-write conflict with all other 99 transactions, the second transaction with the remaining 98 transactions, etc., leading to a total of $frac(n^2 - n, 2) = 4,950$ TOD candidates.
 
 To reduce this growth of TOD candidates, we also require for a collision that $T_A$ writes exactly the value that is read or overwritten by $T_B$. Formally, the following condition must hold to pass this filter:
 
@@ -694,7 +694,7 @@ Thus, we exclude TOD candidates, where $T_B$ has no code access.
 == Experiment
 In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks, different from the block range we used for the development of the filters. Refer to @cha:reproducibility for the experiment setup and the reproducible sampling.
 
-We mined the blocks from block 19830547 up to block 19830647, containing a total of 16799 transactions.
+We mined the blocks from block 19,830,547 up to block 19,830,647, containing a total of 16,799 transactions.
 
 === Performance
 The mining process took a total of 502 seconds, with 311 seconds being used to fetch the data via RPC calls and store it in the database, 6 seconds being used to query the collisions in the database, 17 seconds for filtering the TOD candidates and 168 seconds for preparing statistics. If we consider the running time as the total time excluding the statistics preparation, we analyzed an average of 0.30 blocks per second.
@@ -731,7 +731,7 @@ Note that this does not directly imply that "Same-value collision" filters out m
 <tab:experiment_filters>
 
 === Transactions
-After applying the filters, 7864 transactions are part of at least one TOD candidate. This amounts to 46.8% of all transactions marked as potentially TOD with some other transaction. Only 2381 of these transactions are part of exactly one TOD candidate. At the other end, there exists one transaction that is part of 22 TOD candidates.
+After applying the filters, 7,864 transactions are part of at least one TOD candidate. This amounts to 46.8% of all transactions marked as potentially TOD with some other transaction. Only 2,381 of these transactions are part of exactly one TOD candidate. At the other end, there exists one transaction that is part of 22 TOD candidates.
 
 === Block distance
 In @fig:tod_block_dist, we see that most TOD candidates are within the same block. Moreover, the further two transactions are apart, the less likely we include them as a TOD candidate. A reason for this may be that having many intermediary transactions makes it more likely to be filtered by our "Indirect dependency" filter. Nonetheless, we can conclude that when using our filters, the block window can be reduced even further without missing many TOD candidates.
@@ -748,16 +748,16 @@ In @fig:tod_block_dist, we see that most TOD candidates are within the same bloc
 <fig:tod_block_dist>
 
 === Collisions
-After applying our filters, we have 8818 storage collisions and 5654 balance collisions remaining. When we analyze how often each account is part of a collision, we see that collisions are concentrated around a small set of accounts. For instance, the five accounts with the most collisions#footnote[All of them are token accounts:
+After applying our filters, we have 8,818 storage collisions and 5,654 balance collisions remaining. When we analyze how often each account is part of a collision, we see that collisions are concentrated around a small set of accounts. For instance, the five accounts with the most collisions#footnote[All of them are token accounts:
 #link("https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")[WETH],
 #link("https://etherscan.io/address/0x97a9a15168c22b3c137e6381037e1499c8ad0978")[DOP],
 #link("https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT],
 #link("https://etherscan.io/address/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")[USDC]
 and
 #link("https://etherscan.io/address/0xf938346d7117534222b48d09325a6b8162b3a9e7")[CHOPPY]]
-contribute 43.0% of all collisions. In total, the collisions occur in only 1472 different account states.
+contribute 43.0% of all collisions. In total, the collisions occur in only 1,472 different account states.
 
-@fig:collisions_address_limit depicts how many collisions we get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we end up with 1472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we get 3964 collisions. This criterion already reduces the number of collisions by 73%, while still retaining a sample of 10 collisions for each address.
+@fig:collisions_address_limit depicts how many collisions we get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we end up with 1,472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we get 3,964 collisions. This criterion already reduces the number of collisions by 73%, while still retaining a sample of 10 collisions for each address.
 
 One goal of this paper is to create a diverse set of attacks for our benchmark. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are likely related and do not cover a wide range of attack types. To prevent this, we define additional deduplication filters in @sec:deduplication.
 
@@ -765,7 +765,7 @@ One goal of this paper is to create a diverse set of attacks for our benchmark. 
   image("charts/collisions_limited_per_address.png", width: 80%),
   caption: flex-caption(
     [
-      The chart shows, how many collisions we have, when we limit the number of collisions we include per address. For instance, if we only include 10 collisions for each address we would end up with about 4000 collisions.
+      The chart shows, how many collisions we have, when we limit the number of collisions we include per address. For instance, if we only include 10 collisions for each address we would end up with about 4,000 collisions.
     ],
     [Limit for collisions per address],
   ),
@@ -895,7 +895,7 @@ Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, D
 
 A weakness of this comparison is that we use TOD candidates which are tailored for the TOD approximation and therefore TOD candidates that are TOD may be underrepresented. This could be the reason, why we found 34 TOD candidates that are approximately TOD but not TOD, while we only found 10 TOD candidates that are TOD but not approximately TOD.
 
-Nonetheless, from the 1628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. In the case that TOD transaction pairs are underrepresented in our sample, this still demonstrates that most candidates labelled as approximately TOD are also TOD.
+Nonetheless, from the 1,628 TOD candidates labelled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. In the case that TOD transaction pairs are underrepresented in our sample, this still demonstrates that most candidates labelled as approximately TOD are also TOD.
 
 = TOD attack characteristics <sec:tod-attack-characteristics>
 
@@ -929,7 +929,7 @@ We now take their properties and formalize them. For simplicity, we do not expli
 
 We use $assets$ to denote a set of assets that occur in $T_A$ and $T_B$ in any of the scenarios. As an asset, we consider Ether and the tokens that implement one of the standards ERC-20, ERC-721, ERC-777 or ERC-1155. Let $assetsNormal(A, a) in ZZ$ be the amount of assets $A$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(A, a)$ be the counterpart for the reverse scenario.
 
-For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2500 USDT, because the transaction order influences the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
+For example, assume an address $a$ converts 1 Ether to 3,000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2,500 USDT, because the transaction order influences the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3,000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2,500$.
 
 For Ether, we use the `CALL` and `CALLCODE` instructions to compute which addresses gained and lost Ether in a transaction. We do not include the transaction value, as this is not dependent on the transaction order and thus does not affect the definition. Furthermore, we ignore gas costs because of the inaccuracies described in @sec:execution-inaccuracy.
 
