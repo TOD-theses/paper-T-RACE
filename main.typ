@@ -12,6 +12,10 @@ Checklist:
 - [X] ether -> Ether
 - [ ] reference after or before dot?
 - [X] upright font for fixed meanings
+
+Questions:
+- characteristics vs properties vs attack definitions?
+
 */
 
 = Introduction
@@ -903,9 +907,9 @@ Previously, we noted that the TOD definition is too general to be directly used 
 
 == Attacker gain and victim losses <sec:gain-and-loss-property>
 
-In @sec:tod-relation-previous-works, we already discussed, how the definition in @zhang_combatting_2023 relates to our preliminary definition of TOD. We now present their definition in more detail, and how we will apply it.
+In @sec:tod-relation-previous-works, we already discussed, how the definition by #cite(<zhang_combatting_2023>, form: "prose") relates to our preliminary definition of TOD. We now present their definition in more detail.
 
-They consider two transaction orderings: $T_A -> T_B -> T_P$ and $T_B -> T_A -> T_P$. In an attack, $T_A$ and $T_B$ are TOD. The transaction $T_P$ is an optional third transaction, which sometimes is required for the attack. Our study only considers transaction pairs, therefore we adapt their definition and remove $T_P$ from it. Analyzing their dataset, we find that only 2.2% of the attacks contain such a $T_P$ transaction, therefore we neglect only a small proportion of the covered attacks with this modification.
+Their definition considers two transaction orderings: $T_A -> T_B -> T_P$ and $T_B -> T_A -> T_P$. When an attack occurs, $T_A$ and $T_B$ are TOD. The transaction $T_P$ is an optional third transaction, which sometimes is required for the attacker to make financial profits. Our study only considers transaction pairs, therefore we adapt their definition and remove $T_P$ from it.
 
 They define an attack to occur when following two properties hold:
 
@@ -913,13 +917,11 @@ They define an attack to occur when following two properties hold:
 
 + Victim Loss: "The victim suffers from financial loss in the [normal] scenario compared with the [reverse] scenario."
 
-For financial gains and losses, they consider Ether and ERC-20, ERC-721, ERC-777, and ERC-1155 tokens.
-
-As an attacker, they consider either the sender of $T_A$ or the contract that $T_A$ calls. The rationale of using the contract that $T_A$ calls is that it may be designed to conduct attacks and temporarily store the profits (see e.g. @torres_frontrunner_2022 for more details). The victim is the sender of $T_B$.
+For financial gains and losses, they consider Ether and ERC-20, ERC-721, ERC-777, and ERC-1155 tokens. As an attacker, they consider either the sender of $T_A$ or the contract that $T_A$ calls. The rationale of using the contract that $T_A$ calls is that it may be designed to conduct attacks and temporarily store the profits (see e.g. @torres_frontrunner_2021 for more details). The victim is the sender of $T_B$.
 
 === Formalization
 
-We now take their properties and formalize them. For simplicity, we do not explicitly mention $T_A$ and $T_B$ in all formulas, but assume that we inspect a specific TOD candidate $(T_A, T_B)$.
+The authors of @zhang_combatting_2023 do not provide a precise definition of attacker gain and victim loss, therefore we formalize these definitions. For simplicity, we do not explicitly mention $T_A$ and $T_B$ in all formulas, but assume that we inspect a specific TOD candidate $(T_A, T_B)$ and usages of the normal and reverse scenario refer to these two transactions.
 
 ==== Assets
 
@@ -929,9 +931,9 @@ We now take their properties and formalize them. For simplicity, we do not expli
 
 We use $assets$ to denote a set of assets that occur in $T_A$ and $T_B$ in any of the scenarios. As an asset, we consider Ether and the tokens that implement one of the standards ERC-20, ERC-721, ERC-777 or ERC-1155. Let $assetsNormal(A, a) in ZZ$ be the amount of assets $A$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(A, a)$ be the counterpart for the reverse scenario.
 
-For example, assume an address $a$ converts 1 Ether to 3,000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2,500 USDT, because the transaction order influences the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3,000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2,500$.
+For example, assume an address $a$ converts 1 Ether to 3,000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2,500 USDT. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3,000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2,500$.
 
-For Ether, we use the `CALL` and `CALLCODE` instructions to compute which addresses gained and lost Ether in a transaction. We do not include the transaction value, as this is not dependent on the transaction order and thus does not affect the definition. Furthermore, we ignore gas costs because of the inaccuracies described in @sec:execution-inaccuracy.
+For Ether, we use the `CALL` and `CALLCODE` instructions to compute which addresses gained and lost Ether in a transaction. We do not include the transaction value, as it stays the same regardless of the transaction order#footnote[In the evaluation we discover that it would make sense to include the transaction value, see @sec:attacker-gain-victim-loss-shortcomings.]. Furthermore, we ignore gas costs because of the inaccuracies described in @sec:execution-inaccuracy.
 
 To track the gains and losses for tokens we use following standardized events:
 - ERC-20: `Transfer(address _from, address _to, uint256 _value)`
@@ -942,9 +944,9 @@ To track the gains and losses for tokens we use following standardized events:
 - ERC-1155: `TransferSingle(address _operator, address _from, address _to, uint256 _id, uint256 _value)`
 - ERC-1155: `TransferBatch(address _operator, address _from, address _to, uint256[] _ids, uint256[] _values)`
 
-We only consider calls and event logs if their call context has not been reverted. In Ethereum, a reverted call context means that all the changes are discarded, therefore reverted calls and logs do not influence the gained or lost assets.
+We only consider calls and event logs if their call context has not been reverted. In Ethereum, a reverted call context means that all changes except for the gas payment are discarded, therefore reverted calls and logs do not influence the gained or lost assets.
 
-==== Property
+==== Attacker gain and victim loss
 #let gain = "Gain"
 #let onlyGain = "OnlyGain"
 #let loss = "Loss"
@@ -955,7 +957,7 @@ We only consider calls and event logs if their call context has not been reverte
 #let sender = "sender"
 #let recipient = "recipient"
 
-For a successful attack, we define that in the normal scenario, the attacker makes more profits than in the reverse scenario, and the victim makes more losses than in the reverse scenario. We use following predicates to describe the existence of some asset gain or loss for an address $a$:
+We use following predicates to describe the existence of some asset gain or loss for an address $a$:
 
 $
   gain(a) &<-> exists A in assets: assetsNormal(A, a) > assetsReverse(A, a)\
@@ -964,23 +966,23 @@ $
 
 Continuing the previous example of Ether to USDT token conversion, we would have $gain(a) = top$, as $a$ makes more USDT in the normal scenario than in the reverse scenario, and $loss(a) = bot$, as neither for Ether, nor for USDT $a$ has fewer assets in the normal scenario than in the reverse scenario.
 
-However, we also need to consider the case, where both $gain(a)$ and $loss(a)$ are true. For instance, maybe the attacker gains more tokens but also pays more Ether in the normal scenario. It is not trivial to measure arbitrary tokens in Ether, therefore we cannot determine if the lost Ether outweighs the gained tokens. To avoid such cases, we introduce following two predicates:
+However, we also need to consider the case, where both $gain(a)$ and $loss(a)$ are true. For instance, maybe the attacker gains more USDT tokens but also pays more Ether in the normal scenario. It is not trivial to compare arbitrary assets in Ether, therefore we cannot determine if the lost Ether outweighs the gained tokens. To avoid such cases, we introduce following two predicates:
 
 $
   onlyGain(a) &<-> gain(a) and not loss(a)\
   onlyLoss(a) &<-> loss(a) and not gain(a)\
 $
 
-Note that this can only consider assets we explicitly modelled. In the case that $a$ loses some asset that is not modelled, $onlyGain(a)$ can still be true. This is a limitation when not all relevant assets that occur in $T_A$ and $T_B$ are modelled.
+Note that this only considers assets we explicitly model. In the case that $a$ loses some asset that is not modelled, e.g. a token not implementing any of the above standards, $onlyGain(a)$ can be true despite having losses of an unmodelled asset. This is a limitation when not all relevant assets that occur in $T_A$ and $T_B$ are modelled.
 
-With $onlyGain$ and $onlyLoss$ we can define an attack to occur when the attacker has only advantages in the normal scenario compared to the reverse scenario, and the victim has only disadvantages:
+With $onlyGain$ and $onlyLoss$ we define an attack to occur when the attacker has only advantages in the normal scenario compared to the reverse scenario, and the victim has only disadvantages:
 
 $
   attack <-> (&onlyGain(sender(T_A)) or onlyGain(recipient(T_A)))\
   and &onlyLoss(sender(T_B))
 $
 
-We want to note that the definition by @zhang_combatting_2023 is not explicit on how different kinds of assets are compared. As such, our formalization may vary from their intention and implementation. However, this is a best effort to match their implementation and also the definitions of a subsequent work@zhang_nyx_nodate#footnote[We referred to the tests in `profit_test.go` @zhang_erebus-redgiant_2023 and Appendix A of @zhang_nyx_nodate.].
+We want to note that the definition by @zhang_combatting_2023 is not explicit on how different kinds of assets are compared. As such, our attack formalization may vary from their intention and implementation. However, this is a best effort to match their implementation and also the definitions of a subsequent work @zhang_nyx_nodate#footnote[We use the tests in `profit_test.go` @zhang_erebus-redgiant_2023 and Appendix A of @zhang_nyx_nodate to understand the intended definition.].
 
 == Securify TOD properties
 
@@ -992,7 +994,7 @@ The authors of Securify describe three TOD properties: @tsankov_securify_2018
 
 For Ether transfers, they consider only `CALL` instructions. We also use `CALLCODE` instructions, as these can be used to transfer Ether similar to `CALL`s.
 
-The properties can be applied by comparing the execution of a transaction in the normal with the reverse scenario. We say that a property holds for a transaction pair $(T_A, T_B)$ if it holds for at least one of the transactions $T_A$ and $T_B$, i.e. at least one of the transactions shows attack characteristics.
+The properties can be applied by comparing the execution of a transaction in the normal scenario with the reverse scenario. We say that a property holds for a transaction pair $(T_A, T_B)$ if it holds for at least one of the transactions $T_A$ and $T_B$, i.e. at least one of the transactions shows attack characteristics.
 
 === Formalization
 
@@ -1002,7 +1004,7 @@ The properties can be applied by comparing the execution of a transaction in the
 #let contextAddr = math.italic("ContextAddress")
 #let pc = math.italic("ProgramCounter")
 
-We denote the execution of an instruction as a tuple $(instruction, location, inputs)$. The instruction is an EVM instruction. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses when executing the instruction, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
+We denote the execution of an instruction as a tuple $(instruction, location, inputs)$. The location $location$ is a tuple $(contextAddr, pc)$, where $contextAddr$ is the address that is used for storage and balance accesses when executing the instruction, and $pc$ is the byte offset of the instruction in the executed code. Finally, $inputs$ is a sequence of stack values passed as arguments to the instruction.
 
 #let normalCalls = $F_N$
 #let reverseCalls = $F_R$
@@ -1029,9 +1031,9 @@ $
 
 We exclude cases where TOD Transfer is fulfilled, as TOD Amount would always be fulfilled if TOD Transfer is fulfilled.
 
-For the case that at maximum one call happens per location, we could directly compare the values used at each call between the normal and reverse scenario. However, with loops, multiple call executions can happen at the same location, which is the reason we choose the definition that compares the number of occurrences.
+// For the case that at maximum one call happens per location, we could directly compare the values used at each call between the normal and reverse scenario. However, with loops, multiple call executions can happen at the same location, which is the reason we choose the definition that compares the number of occurrences.
 
-For example, consider a case where in the normal scenario we have three `CALL`s at the same location $l$, two with value 5 and one with value 6, but in the reverse scenario we have only one `CALL` with value 5 and one with value 6. For location $l$ and value 5 two `CALL`s exist in the normal scenario, but only one in the reverse scenario, therefore TOD Amount is fulfilled.
+// For example, consider a case where in the normal scenario we have three `CALL`s at the same location $l$, two with value 5 and one with value 6, but in the reverse scenario we have only one `CALL` with value 5 and one with value 6. For location $l$ and value 5 two `CALL`s exist in the normal scenario, but only one in the reverse scenario, therefore TOD Amount is fulfilled.
 
 ==== TOD Receiver
 
@@ -1061,14 +1063,14 @@ As a pattern to detect ERC-20 multiple withdrawal attacks we require following c
 
 The variable $v$ represents the attacker address, $v$ the victim address $x$ the transferred value and $y$ the approved value. We require that the events are not reverted.
 
-As shown in @tab:erc20-multiple-withdrawal-example, executions of `transferFrom` and `approve` can be TOD because `approve` simply overwrites the currently approved value with the new approved value. While this behaviour is standardized in @noauthor_erc-20_nodate, other methods may also change the approval and emit `Approval` events, e.g. by making a relative increase rather than overwriting. To ensure that there is indeed an overwrite, we require that the approval in the normal scenario is equal to the one in the reverse scenario. If there was a relative change of the approval, the approved value $y$ would differ.
+As shown in @tab:erc20-multiple-withdrawal-example, executions of `transferFrom` and `approve` can be TOD because `approve` overwrites the currently approved value with the new approved value. While this behaviour is standardized in @noauthor_erc-20_nodate, other methods may prevent ERC-20 multiple withdrawal attacks by making a relative increase of the approved value rather than overwriting it. To ensure that there is indeed an overwrite, we require that the approval in the normal scenario is equal to the one in the reverse scenario. If there was a relative change of the approval, the approved value $y$ would differ.
 
 
 == Trace analysis
 
-To check for the TOD characteristics, we use the same approach to compute state overrides for the normal and reverse scenario as in @sec:transaction-execution-rpc. The `debug_traceCall` method allows to define a custom tracer in Javascript that can process each execution step. We use this tracer to track `CALL` instructions and emitted token events.
+To check for the TOD characteristics, we use the same approach to compute state overrides for the normal and reverse scenario as in @sec:transaction-execution-rpc. The `debug_traceCall` method allows to define a custom tracer in Javascript that can process each execution step. We use this tracer to track `CALL` and `CALLCODE` instructions and token events.
 
-The Javascript tracer is described in @app:javascript-tracer. When executing a transaction, it returns all non-reverted `CALL`, `CALLCODE`, `LOG0`, `LOG1`, `LOG2`, `LOG3` and `LOG4` instructions and their inputs. We parse the call instructions to obtain Ether changes and the log instructions for token changes and ERC-20 approvals. The results are used to check for the previously defined characteristics.
+The Javascript tracer is described in @app:javascript-tracer. When executing a transaction, it returns all non-reverted `CALL`, `CALLCODE`, `LOG0`, `LOG1`, `LOG2`, `LOG3` and `LOG4` instructions and their inputs. We parse the call instructions to obtain Ether changes and the log instructions for token changes and ERC-20 `Approval` events. The results are used to check for the previously defined characteristics.
 
 = Evaluation <sec:evaluation>
 
@@ -1087,13 +1089,13 @@ We still need to:
 - check why ground truth witnesses were not found by attacker gain and victim loss
 */
 
-In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as the ground truth to evaluate our TOD detection and the detection of the attacker gain and victim loss characteristic. For the Securify and ERC-20 multiple withdrawal characteristics we rely solely on a manual evaluation.
+In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as ground truth to evaluate our TOD detection and the detection of the attacker gain and victim loss characteristic. For the Securify and ERC-20 multiple withdrawal characteristics we rely solely on a manual evaluation.
 
-We use the dataset from @zhang_combatting_2023 that evaluates the blocks 11,299,000 up to 11,300,000. They found 6,765 attacks from which 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, we indirectly also compare our results against the method of @torres_frontrunner_2021.
+The ground truth dataset contains 6,765 attacks in the block range 11,299,000 to 11,300,000. From these attacks, 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, showing that our method works well for this ground truth indirectly shows also that it works well for the results of @torres_frontrunner_2021.
 
-First combine the TOD candidate mining, the TOD detection and TOD attack analysis to analyze this block range. This is discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.
+First combine the TOD candidate mining, the TOD detection and TOD attack analysis methods to analyze this block range. The reuslts are discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.
 
-For several of the manual evaluations, we let our tool output the traces of the normal and reverse scenario, containing each executed instructions. We can then compare the normal scenario, which should be equal to the execution that happened on the blockchain, with results shown on Etherscan. This can verify that our state calculation and transaction execution via RPC for the normal scenario is correct. The reverse scenario cannot be compared this way.
+For several of the manual evaluations, we use execution traces from our tool, which show the execution of each instruction in the normal and reverse scenarios. We can then compare the relevant results from the normal scenario, which should be equal to the execution that happened on the blockchain, with results shown on Etherscan#todo[Reference]. This can verify that our state calculation and transaction execution via RPC for the normal scenario is correct. The reverse scenario cannot be compared this way.
 
 
 == Overall evaluation <sec:overall-evaluation>
@@ -1102,7 +1104,7 @@ We mined TOD candidates in the 1,000 blocks starting at 11,299,000 which resulte
 
 We compare the TOD candidates, TODs and TOD attacks we found against the ground truth in @tab:eval-overall. Our mining procedure marks 115 of the attacks in the ground truth as TOD candidates. From the 115 TOD candidates, 95 are detected as TOD and of those 85 are marked as an attack.
 
-We we miss 98% of the ground truth attacks when mining the TOD candidates. The following steps miss another 26% of the attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
+We miss 98% of the ground truth attacks when mining the TOD candidates. The following steps miss another 26% of the attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
 
 This section focuses on the 195 attacks that are found by us, but are not part of the ground truth.
 
@@ -1138,9 +1140,9 @@ We manually evaluate the 19 attacks to check if the attacker gain and victim los
 
 In all 19 cases, the manual evaluation shows that the attacker gain and victim loss property holds and that the relevant calls and logs in the normal scenario match those on the blockchain. However, we notice two shortcomings in our definition of the attacker gain and victim loss property.
 
-==== Definition shortcomings
+==== Definition shortcomings <sec:attacker-gain-victim-loss-shortcomings>
 
-Firstly, we assumed that the transaction value is independent of the transaction order, because it is part of the transaction itself. However, when a transaction is reverted, the value is not sent to the receiver. Therefore, the #emph[transfer] of the transaction value may depend on the transaction order. If we considered the transaction value in the calculation, six of the 19 attacks would be a false positive.
+Firstly, we assumed that the transaction value is independent of the transaction order, because it is part of the transaction itself. However, when a transaction is reverted, the value is not sent to the receiver. Therefore, the transfer of the transaction value may depend on the transaction order. If we considered the transaction value in the calculation, six of the 19 attacks would be a false positive.
 
 Secondly, in five cases we have a loss for the sender of $T_A$ (the attackers EOA), while we have only gains for the recipient of $T_A$ (considered the attackers bot in this case). Our definition considers the attacker gain fulfilled for the attackers bot and ignores the loss of the attackers EOA. If we considered them together, we may have different results in such cases.
 

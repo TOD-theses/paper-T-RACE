@@ -47,7 +47,6 @@
 #outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
 
 #todo[
-  - Evolution: why page 41-42?
   - Nyx: S&P 2024
 ]
 
