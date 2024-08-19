@@ -4,7 +4,7 @@
 
 /*
 Checklist:
-- [ ] ~impact~ -> affect/influence
+- [X] ~impact~ -> affect/influence
 - [ ] single and double quotes
 - [X] italic numbers
 - [X] , that -> that
@@ -276,7 +276,7 @@ In @torres_frontrunner_2021, the authors do not provide a formal definition of T
 
 Similar to our intuitive TOD definition, they execute $T_A$ and $T_V$ in different orders and check if it affects the result. In their case, they only check the number of executed instruction, instead of the resulting state. This misses attacks where the same instructions were executed, but the operands for these instructions in the second transaction changed because of the first transaction.
 
-In @zhang_combatting_2023, the authors define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a -> T_v -> T_a^p$ and $T_v -> T_a -> T_a^p$ and check if the execution order impacts financial gains, which we will discuss in more detail in @sec:gain-and-loss-property.
+In @zhang_combatting_2023, the authors define an attack as a triple $A = angle.l T_a , T_v , T_a^p angle.r$, where $T_a$ and $T_v$ are similar to $T_A$ and $T_B$ from our definition, and $T_a^p$ is an optional third transaction. They consider the execution orders $T_a -> T_v -> T_a^p$ and $T_v -> T_a -> T_a^p$ and check if the execution order influences financial gains, which we will discuss in more detail in @sec:gain-and-loss-property.
 
 We note that if these two execution orders result in different states, this is not because of the last transaction $T_a^p$, but because of a TOD between $T_a$ and $T_v$. As we always execute $T_a^p$ last, and transaction execution is deterministic, it only gives a different result if the execution of $T_a$ and $T_v$ gave a different result. Therefore, if the execution order results in different financial gains, then $T_a$ and $T_v$ must be TOD.
 
@@ -288,7 +288,7 @@ For the analysis of the tools by @zhang_combatting_2023 and @torres_frontrunner_
 === Intermediary transactions
 To analyze a TOD $(T_A , T_B)$, we are interested in how $T_A$ affects $T_B$ in the normal order, and how $T_B$ affects $T_A$ in the reverse order. Our intuitive definition does not specify how to handle transactions that occur between $T_A$ and $T_B$, which we will name #emph[intermediary transactions].
 
-Suppose that there is one transaction $T_X$ between $T_A$ and $T_B$: $sigma ->^(T_A) sigma_A ->^(T_X) sigma_(A X) ->^(T_B) sigma_(A X B)$. The execution of $T_B$ may depend on both, $T_A$ and $T_X$. When we are interested in the impact of $T_A$ on $T_B$, we need to define what happens with $T_X$.
+Suppose that there is one transaction $T_X$ between $T_A$ and $T_B$: $sigma ->^(T_A) sigma_A ->^(T_X) sigma_(A X) ->^(T_B) sigma_(A X B)$. The execution of $T_B$ may depend on both, $T_A$ and $T_X$. When we are interested in the effect of $T_A$ on $T_B$, we need to define what happens with $T_X$.
 
 For executing in the normal order, we have two possibilities:
 
@@ -297,13 +297,13 @@ For executing in the normal order, we have two possibilities:
 
 When executing the reverse order, we have the following choices:
 
-+ $sigma ->^(T_B) sigma_B ->^(T_A) sigma_(B A)$, which ignores $T_X$ and thus may impact the execution of $T_B$.
++ $sigma ->^(T_B) sigma_B ->^(T_A) sigma_(B A)$, which ignores $T_X$ and thus may influence the execution of $T_B$.
 + $sigma ->^(T_X) sigma_X ->^(T_B) sigma_(X B) ->^(T_A) sigma_(X B A)$, which executes $T_X$ on $sigma$ rather than $sigma_A$ and now also includes the effects of $T_X$ for executing $T_A$.
 + $sigma ->^(T_B) sigma_B ->^(T_X) sigma_(B X) ->^(T_A) sigma_(B X A)$, which executes $T_X$ after $T_B$ and before $T_A$, thus potentially influencing the execution of both $T_A$ and $T_B$.
 
-All of these scenarios are possible, but none of them provides a clean solution to solely analyze the impact of $T_A$ on $T_B$, as we always may have some indirect impact from the (non-)execution of $T_X$.
+All of these scenarios are possible, but none of them provides a clean solution to solely analyze the effect of $T_A$ on $T_B$, as we always may have some indirect effect from the (non-)execution of $T_X$.
 
-In @zhang_combatting_2023, this impact of intermediary transactions is acknowledged as causing a few false positives:
+In @zhang_combatting_2023, this influence of intermediary transactions is acknowledged as causing a few false positives:
 
 #quote(block: true)[
   In blockchain history, there could be many other transactions between $T_a$, $T_v$, and $T_p^a$. When we change the transaction orders to mimic attack-free scenarios, the relative orders between $T_a$ (or $T_v$) and other transactions are also changed. Financial profits of the attack or victim could be affected by such relative orders. As a result, the financial profits in the attack-free scenario could be incorrectly calculated, and false-positively reported attacks may be induced, but our manual check shows that such cases are rare.
@@ -351,7 +351,7 @@ Both, in the normal and reverse scenario, it uses the state directly before exec
 
 The emulator is initialized with the block `front_runner["blockNumber"]-1` and no single transactions are executed prior to running the analysis. Therefore, the state cannot include transactions that were executed in the same block before $T_A$.
 
-Similar to the case with the block environment, this could lead to differences between the emulation and the results from the blockchain, when $T_A$ or $T_V$ are impacted by a previous transaction in the same block.
+Similar to the case with the block environment, this could lead to differences between the emulation and the results from the blockchain, when $T_A$ or $T_V$ are affected by a previous transaction in the same block.
 
 == TOD simulation <sec:tod-simulation>
 
@@ -409,7 +409,7 @@ Similarly, for the password leaking example in @sec:password-leaking we showed t
 
 == TOD approximation <sec:tod-approximation>
 
-This paper focuses on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and impact the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to impact the second transaction, which implies that in every TOD attack the state changes of $T_B$ should be dependent on the transaction order. We use this assumption to define an approximation of TOD:
+This paper focuses on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ and affect the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to influence the second transaction, which implies that in every TOD attack the state changes of $T_B$ should be dependent on the transaction order. We use this assumption to define an approximation of TOD:
 
 #definition("Approximately TOD")[
   Let $T_A$ and $T_B$ be two transactions and with the corresponding state changes $Delta_T_B$ from the normal scenario and $Delta'_T_B$ from the reverse scenario.
@@ -424,7 +424,7 @@ Theoretically, the assumption that an attack must influence the transaction it f
 === Performance
 #todo[Make it more upfront that the normal and reverse scenario definition allows reusing data for the normal scenario and only requires executing $T_A$ and $T_B$ in the reverse scenario.]
 
-To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world state $sigma$ and the state changes from $T_A$, $T_B$ and the intermediary transactions $T_(X_n)$. With the state changes we can compute $sigma_(X_n) - Delta_(T_A) = sigma + Delta_(T_A) + (sum_(i = 0)^n Delta_(T_(X_i))) - Delta_(T_A)$ and then execute $T_B$ on this state. With the recorded state changes $Delta'_T_B$ we can compute $sigma + Delta'_T_B$ and execute $T_A$ on this state. As such, we need one transaction execution to check for the TOD approximation and two transaction executions to check for TOD. Despite including the impact of arbitrary many intermediary transactions, we do not need to execute them to check for TOD.
+To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world state $sigma$ and the state changes from $T_A$, $T_B$ and the intermediary transactions $T_(X_n)$. With the state changes we can compute $sigma_(X_n) - Delta_(T_A) = sigma + Delta_(T_A) + (sum_(i = 0)^n Delta_(T_(X_i))) - Delta_(T_A)$ and then execute $T_B$ on this state. With the recorded state changes $Delta'_T_B$ we can compute $sigma + Delta'_T_B$ and execute $T_A$ on this state. As such, we need one transaction execution to check for the TOD approximation and two transaction executions to check for TOD. Despite including the effect of arbitrary many intermediary transactions, we do not need to execute them to check for TOD.
 
 When we want to check $n$ transactions for TOD, there are $frac(n^2 - n, 2)$ possible transaction pairs. Thus if we want to test each pair for TOD we end up with a total of $frac(n^2 - n, 2)$ transaction executions for the approximation and $n^2 - n$ executions for the exact TOD check. Similar to @torres_frontrunner_2021 and @zhang_combatting_2023, we can filter irrelevant transaction pairs to reduce the search space.
 
@@ -434,14 +434,14 @@ Depending on the available world states and state changes, the exact number of r
 
 With our definition, the state changes $Delta_T_A$ and $Delta_T_B$ from the normal execution are equivalent to the state changes that happened on the blockchain. Also, the reverse order is closely related to the state from the blockchain, as we start with the world states before $T_A$ and $T_B$ and only change state keys that were modified by $T_A$ and $T_B$, thus only the state keys relevant to analyze for TOD. Furthermore, we prevent effects from block environment changes by using the same environments as on the blockchain.
 
-This contrasts other implementations, where transactions are executed in different block environments than originally, are executed based on a different starting state or ignore the impact of intermediary transactions. All three cases can alter the execution of $T_A$ and $T_B$, such that the result is not closely related to the blockchain anymore.
+This contrasts other implementations, where transactions are executed in different block environments than originally, a different world state is used for the first transaction or the effect of intermediary transactions is ignored. All three cases can alter the execution of $T_A$ and $T_B$, such that the result is not closely related to the blockchain anymore.
 
 == Definition weaknesses
 <sec:weaknesses>
 
-=== Approximation focus on impact on $T_B$ <sec:weakness-focus-on-tb>
+=== Approximation focuses on effect on $T_B$ <sec:weakness-focus-on-tb>
 
-In some cases, the transaction order can impact the execution of the individual transactions, but does not affect the overall result of executing both transactions. The approximation does not consider the execution of $T_A$ after $T_B$ in the reverse order, which could lead to incorrect TOD classification.
+In some cases, the transaction order can affect the execution of the individual transactions, but does not affect the overall result of executing both transactions. The approximation does not consider the execution of $T_A$ after $T_B$ in the reverse order, which could lead to incorrect TOD classification.
 
 For example, consider the case where both $T_A$ and $T_B$ multiply a value in a storage slot by 5. If the storage slot initially has the value 1, then executing both $T_A$ and $T_B$ will result in 25, regardless of the order. However, the state changes $Delta_T_B$ and $Delta'_T_B$ are different, as for one scenario the value changes from 1 to 5 and for the other from 5 to 25. Therefore, this would be classified as approximately TOD.
 
@@ -449,7 +449,7 @@ Note that the approximation is robust against the cases, where the absolute valu
 
 === Indirect dependencies <sec:weakness-indirect-dependencies>
 
-An intuitive interpretation of our definition is that we compare $T_A -> T_(X_i) -> T_B$ with $T_(X_i) -> T_B$, i.e. reckon what happens if $T_A$ is not executed first, but last. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, not executing $T_A$ before the intermediary transactions may impact them and thus indirectly change the behaviour of $T_B$. Then we do not know if $T_A$ directly impacted $T_B$, or only through some interplay with intermediary transactions. Similarly, when we execute $T_A$ last and it behaves differently, we do not know if this is because of an interaction with $T_B$ or an intermediary transaction.
+An intuitive interpretation of our definition is that we compare $T_A -> T_(X_i) -> T_B$ with $T_(X_i) -> T_B$, i.e. reckon what happens if $T_A$ is not executed first, but last. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, not executing $T_A$ before the intermediary transactions may influence them and thus indirectly change the behaviour of $T_B$. Then we do not know if $T_A$ directly influences $T_B$, or only through some interplay with intermediary transactions. Similarly, when we execute $T_A$ last and it behaves differently, we do not know if this is because of an interaction with $T_B$ or an intermediary transaction.
 
 Therefore, our exclusion of interactions between $T_A$ and $T_(X_i)$ may be desirable to focus only on interactions between $T_A$ and $T_B$, however it can cause divergences between our analysis results and what would have happened on blockchain.
 
@@ -463,7 +463,7 @@ When executing these transactions in the normal order, and $a$ initially has 5 E
 
 However, when using our TOD definition and computing $(sigma_(X_n) - Delta_(T_A))$, we would only modify the balances for $a$ and $x$, but not for $b$, because $b$ is not modified in $Delta_(T_A)$. Thus, $T_B$ would still succeed in the reverse order according to our definition, but would fail in practice due to the indirect effect. This shows, how the concept of removing $T_A$ does not map exactly to our TOD definition.
 
-In this example, we had a TOD for $(T_A , T_X)$ and $(T_X , T_B)$. However, we can also have an indirect dependency between $T_A$ and $T_B$ without a TOD for $(T_X , T_B)$. For instance, if $T_X$ and $T_B$ would be TOD, but $T_A$ caused $T_X$ to fail. When inspecting the normal order, $T_X$ failed, so there is no TOD between $T_X$ and $T_B$. However, when executing the reverse order without $T_A$, then $T_X$ would succeed and could impact $T_B$.
+In this example, we had a TOD for $(T_A , T_X)$ and $(T_X , T_B)$. However, we can also have an indirect dependency between $T_A$ and $T_B$ without a TOD for $(T_X , T_B)$. For instance, if $T_X$ and $T_B$ would be TOD, but $T_A$ caused $T_X$ to fail. When inspecting the normal order, $T_X$ failed, so there is no TOD between $T_X$ and $T_B$. However, when executing the reverse order without $T_A$, then $T_X$ would succeed and could influence $T_B$.
 
 == State collisions
 We denote state accesses by a transaction $T$ as a set of state keys $R_T = { K_1 , dots.h , K_n }$ and state modifications as $W_T = { K_1 , dots.h , K_m }$.
@@ -481,7 +481,7 @@ With $W_(T_A) sect R_(T_B)$ we include write-read collisions, where $T_A$ modifi
 == TOD candidates
 We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed before $T_B$ and $colls(T_A , T_B) != nothing$ as a TOD candidate.
 
-A TOD candidate is not necessarily TOD or approximately TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not impacted by this collision.
+A TOD candidate is not necessarily TOD or approximately TOD, for instance consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not influenced by this collision.
 
 If $(T_A , T_B)$ is approximately TOD, then $(T_A , T_B)$ must also be a TOD candidate. We can only have $Delta_T_B changesDiffer Delta'_T_B$ if the state it accesses or modifies differs between the normal and reverse scenario. For this to happen, $T_A$ must modify this state, therefore $(W_T_A sect R_T_B) union (W_T_A sect W_T_B) != nothing$. This is equivalent to $colls(T_A, T_B) != nothing$, showing that $(T_A, T_B)$ must be a TOD candidate.
 
@@ -560,7 +560,7 @@ Some state accesses and modifications are inherent to transaction execution. To 
 
 The previous sections list possible ways to access and modify the world state. Many previous works have focused on storage and balance collisions, however they did not discuss if or why code and nonce collisions are not important. @wang_etherfuzz_2022@kolluri_exploiting_2019@li_finding_2019@luu_making_2016@tsankov_securify_2018@munir_todler_2023 Here, we argue, why only storage and balance collisions are relevant for TOD attacks and code and nonce collisions can be neglected.
 
-Following the assumption we made in @sec:tod-approximation, in a TOD attack an attacker influences the execution of some transaction $T_B$, by placing a transaction $T_A$ before it. To have some impact, there must be a write-write or write-read collisions between $T_A$ and $T_B$. Therefore, our scenario is that we start from some (victim) transaction $T_B$ and try to create impactful collisions with a new transaction $T_A$.
+Following the assumption we made in @sec:tod-approximation, in a TOD attack an attacker influences the execution of some transaction $T_B$, by placing a transaction $T_A$ before it. To have some effect, there must be a write-write or write-read collisions between $T_A$ and $T_B$. Therefore, our scenario is that we start from some (victim) transaction $T_B$ and try to create impactful collisions with a new transaction $T_A$.
 
 Let us first focus on the instructions that could modify the codes and nonces that $T_B$ accesses or modifies. As we see in @tab:state_writing_instructions, these are `SELFDESTRUCT`, `CREATE` and `CREATE2`. Since the EIP-6780 update@ballet_eip-6780_2023, `SELFDESTRUCT` only destroys a contract if the contract was created in the same transaction. Therefore, `SELFDESTRUCT` can only modify a code and nonce within the same transaction, but cannot be used to attack an already submitted transaction $T_B$. The instructions to create a new contract, `CREATE` and `CREATE2`, both fail when there is already a contract at the target address. @wood_ethereum_2024[p.11] Therefore, we can only modify the code if the contract previously did not exist. In the case that $T_B$ interacts with some address $a$ that contains no code, the attacker needs `CREATE` or `CREATE2` to create a contract at the address $a$ to force a collision. This is not possible for arbitrary addresses, as the address computation uses the sender's address as an input to a hash function in both cases.@wood_ethereum_2024[p.11] A similar argument can be made about contract creation directly via the transaction and some init code.
 
@@ -829,7 +829,7 @@ To execute $T_A$ in the normal scenario we use the same method as for $T_B$, exc
 
 While manually testing this method, we found that using `debug_traceCall` with state overrides can lead to incorrect gas cost calculations with Erigon#footnote[See https://github.com/erigontech/erigon/issues/11254.]. To account for these inaccuracies, we compare the state changes from the normal execution via `debug_traceCall` with the state changes from `debug_traceBlockByNumber`. As we do not provide state overrides to `debug_traceBlockByNumber`, this method should yield the correct state changes, and we can detect differences to our simulation.
 
-If the state changes of a transaction only differ in the balances of the senders and the block validators, we keep TOD candidates containing this transaction. Such differences are to be expected when gas costs vary, as the gas costs impact the priority fee sent from the transaction sender to the block validator. However, if there are other differences, we exclude the transaction from further analysis, as the simulation does not reflect the real behaviour in such cases.
+If the state changes of a transaction only differ in the balances of the senders and the block validators, we keep TOD candidates containing this transaction. Such differences are to be expected when gas costs vary, as the gas costs affect the priority fee sent from the transaction sender to the block validator. However, if there are other differences, we exclude the transaction from further analysis, as the simulation does not reflect the real behaviour in such cases.
 
 A drawback of this inaccuracy is that we do not detect Ether flows between the senders of $T_A$ and $T_B$ that are TOD. For instance, if the sender of $T_A$ sends one Ether to the sender of $T_B$ in the normal scenario, but two Ether in the reverse scenario, then $(T_A, T_B)$ is TOD. However, our analysis would assume that the Ether changes are due to incorrect gas cost calculations and exclude the TOD candidate from further analysis.
 
@@ -895,7 +895,7 @@ To understand, in which cases the two definitions lead to different results, we 
 
 Our analysis shows that 34 TOD candidates have been marked as approximately TOD but not TOD. As such, we have $Delta_T_B changesDiffer Delta'_T_B$ and ${Delta_T_A, Delta_T_B} changesEqual {Delta'_T_A, Delta'_T_B}$. In all these cases, the differences of $T_A$ between the normal and reverse scenario balance out the differences of $T_B$ between the normal and reverse scenario. One example is discussed in detail in @app:analysis-of-definition-differences.
 
-Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not impacted by the transaction order.
+Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$. In these cases, $T_A$ creates different state changes depending on whether it was executed before or after $T_B$, thus being TOD. The execution of $T_B$ is not dependent by the transaction order.
 
 A weakness of this comparison is that we use TOD candidates which are tailored for the TOD approximation and therefore TOD candidates that are TOD may be underrepresented. This could be the reason, why we found 34 TOD candidates that are approximately TOD but not TOD, while we only found 10 TOD candidates that are TOD but not approximately TOD.
 
@@ -933,7 +933,7 @@ We now take their properties and formalize them. For simplicity, we do not expli
 
 We use $assets$ to denote a set of assets that occur in $T_A$ and $T_B$ in any of the scenarios. As an asset, we consider Ether and the tokens that implement one of the standards ERC-20, ERC-721, ERC-777 or ERC-1155. Let $assetsNormal(A, a) in ZZ$ be the amount of assets $A$ that address $a$ gained or lost by executing both transactions in the normal scenario. Let $assetsReverse(A, a)$ be the counterpart for the reverse scenario.
 
-For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2500 USDT, because the transaction order somehow impacted the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
+For example, assume an address $a$ converts 1 Ether to 3000 #link("https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7")[USDT] tokens in the normal scenario, but in the reverse scenario converts 1 Ether to only 2500 USDT, because the transaction order influences the conversion rate. The assets that occur are $assets = {"Ether", "USDT"}$. The currency changes are: $assetsNormal("Ether", a) = -1$, $assetsNormal("USDT", a) = 3000$, $assetsReverse("Ether", a) = -1$ and $assetsReverse("USDT", a) = 2500$.
 
 For Ether, we use the `CALL` and `CALLCODE` instructions to compute which addresses gained and lost Ether in a transaction. We do not include the transaction value, as this is not dependent on the transaction order and thus does not affect the definition. Furthermore, we ignore gas costs because of the inaccuracies described in @sec:execution-inaccuracy.
 
@@ -946,7 +946,7 @@ To track the gains and losses for tokens we use following standardized events:
 - ERC-1155: `TransferSingle(address _operator, address _from, address _to, uint256 _id, uint256 _value)`
 - ERC-1155: `TransferBatch(address _operator, address _from, address _to, uint256[] _ids, uint256[] _values)`
 
-We only consider calls and event logs if their call context has not been reverted. In Ethereum, a reverted call context means that all the changes are discarded, therefore reverted calls and logs do not impact the gained or lost assets.
+We only consider calls and event logs if their call context has not been reverted. In Ethereum, a reverted call context means that all the changes are discarded, therefore reverted calls and logs do not influence the gained or lost assets.
 
 ==== Property
 #let gain = "Gain"
