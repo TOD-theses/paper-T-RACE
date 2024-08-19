@@ -6,6 +6,7 @@
   show table.cell.where(y: 0): strong
   show: thmrules.with(qed-symbol: $square$)
   show raw.where(block: true): set par(justify: false)
+  set page(margin: (top: 4cm, bottom: 10em, left: 3cm, right: 3cm))
 
   rest
 }

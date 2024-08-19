@@ -25,8 +25,8 @@
 #show: toc-styles
 #show: general-styles
 #show: front-matter-styles
-
 #show: custom-styles
+
 
 #include "front-matter.typ"
 #outline()
