@@ -569,7 +569,7 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
 
 #proposition[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(stateKey("balance", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))(stateKey("balance", italic("sender"))) < v_0$ and $post(Delta_(T_A))(stateKey("balance", italic("sender"))) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9] Therefore, we must have $sigma(stateKey("balance", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))(stateKey("balance", italic("sender"))) < v_0$ and $post(Delta_(T_A))(stateKey("balance", italic("sender"))) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A))(("balance", italic("sender"))) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
@@ -692,7 +692,7 @@ If a transaction sends Ether without executing code, it only depends on the bala
 Thus, we exclude TOD candidates, where $T_B$ has no code access.
 
 == Experiment
-In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks, different from the block range we used for the development of the filters. Refer to @cha:reproducibility for the experiment setup and the reproducible sampling.
+In this section, we discuss the results of applying the TOD candidate mining methodology on a randomly sampled sequence of 100 blocks, different from the block range we used for the development of the filters. Refer to @cha:reproducibility for the experiment setup.
 
 We mined the blocks from block 19,830,547 up to block 19,830,647, containing a total of 16,799 transactions.
 
@@ -1097,7 +1097,7 @@ We note that in our evaluation we verify the correctness of the normal scenario,
 
 The results we obtain in the normal scenario can be directly evaluated with data from the blockchain, as the executions in the normal scenario should equal to the executions that happened on the blockchain. For this comparison with blockchain data, such as Ether and token transfers, we use Etherscan#todo[Reference].
 
-Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable to detect TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.
+Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable to detect TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.#todo[Add traces to the github repository]
 
 We can also compare our normal scenario with the reverse scenario and evaluate where they differ. We do so in #todo[sec x], where we verify that the first (non-gas) difference between the normal and reverse scenario is related to a state change of one of the transactions.
 
@@ -1294,7 +1294,7 @@ Overall, it appears that attacks with this label do not necessarily fulfill the 
 
 We manually check the remaining 11 attacks that our method does not report as TOD.
 
-We check ift these are caused by bugs in the archive node by reruninng the analysis with a Reth archive node. In two cases, using Reth we report them as TOD because of the same balance changes as reported in the ground truth, showing the inaccuracies from @sec:execution-inaccuracy.
+We check if these are caused by bugs in the archive node by reruninng the analysis with a Reth archive node. In two cases, using Reth we report them as TOD because of the same balance changes as reported in the ground truth, showing the inaccuracies from @sec:execution-inaccuracy.
 
 // we could also verify, that the storage slots and balances modified by T_A are not accessed by T_B.
 Furthermore, we compare the traces of the instruction executions between the scenarios. For 8 attacks, the traces in the normal scenario are equal to those in the reverse scenario. By inspecting the state changes in Etherscan, we also rule out write-write TODs, where both transactions write to the same storage slot. As such, we consider these as not TOD.
@@ -1360,20 +1360,22 @@ After fetching the state changes and transactions, we run the TOD detection and 
 
 Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as the their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
 
-= Data availability <sec:data-availability>
-TBD.
-
-= Reproducibility
+= Data availability and reproducibility
 <cha:reproducibility>
-== Tool
-TBD.
 
-== Randomness
-TBD.
+== Tool
+
+The program used to run the experiments is available at https://github.com/TOD-theses/t_race. It can be run with Python or Docker and requires an archive node that supports the debug namespace, including JS tracing for the attack analysis. Refer to the documentation on the repository for more details on using it.
+
+The TOD candidates deduplication relies on randomness. To allow reproducibility, the program sets a seed for the randomness before executing this deduplication step.
+
+== Data availability <sec:data-availability>
+
+The experiment results and evaluation artifacts produced by this thesis are avilabile at https://github.com/TOD-theses/t_race_results. This includes the outputs of the tool executions, postprocessed data and the evaluation samples with corresponding notes.
+
 
 == Experiment setup
+
 The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and a SN530 NVMe SSD. We used a 16 GB RAM with an additional 32 GB swap file.
 
-For the RPC requests we used a public endpoint@noauthor_pokt_2024#todo[And free account for @sec:evaluation], which uses Erigon 2.59.3@noauthor_rpc_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time.
-
-#todo[reth/v1.0.4-106a0c7c/x86_64-unknown-linux-gnu]
+For the RPC requests we do not use our own archive node, but rely on free services by @nodies_web3_nodate, which uses Erigon 2.59.3@noauthor_erigon_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests. @fuzzland_eth_2024 Unless otherwise noted, the cache was initially empty for experiments that measure the running time. In the evaluation, we refer to the usage of a Reth instance for a few TOD checks. We use a public Reth 1.0.4 instance for this. @paradigm_reth_nodate
