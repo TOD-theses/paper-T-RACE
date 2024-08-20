@@ -1070,21 +1070,6 @@ The Javascript tracer is described in @app:javascript-tracer. When executing a t
 
 = Evaluation <sec:evaluation>
 
-/*
-We manually checked positive instances:
-- attacker gain and victim loss: 20 that are not in the ground truth
-- TOD Transfer: sample of 20
-- TOD Amount: sample of 20
-- TOD Receiver: the 1 and only
-- ERC-20 multiple withdrawal: all 15
-
-We still need to:
-- work out TOD mining comparison against ground truth
-- check why ground truth witnesses were not found by TOD check
-- verify sample of TOD check?
-- check why ground truth witnesses were not found by attacker gain and victim loss
-*/
-
 In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as ground truth to evaluate our TOD detection and the detection of the attacker gain and victim loss characteristic. For the Securify and ERC-20 multiple withdrawal characteristics we rely solely on a manual evaluation.
 
 The ground truth dataset contains 6,765 attacks in the block range 11,299,000 to 11,300,000. From these attacks, 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, showing that our method works well for this ground truth indirectly shows also that it works well for the results of @torres_frontrunner_2021.
@@ -1359,6 +1344,16 @@ For the TOD detection and TOD attack analysis we fetch the state changes and tra
 After fetching the state changes and transactions, we run the TOD detection and TOD attack analysis using 16 threads, enabling us to make multiple RPC requests in parallel. To check the 14,500 TOD candidates for TOD it took 11 minutes, an average of 44 milliseconds per TOD candidate. The attack analysis of the 2,959 TOD transaction pairs took 4 minutes, averaging to 77 milliseconds per analysis.
 
 Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as the their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
+
+/*
+= Discussion
+
+In this thesis, we precisely define transaction order dependency (TOD) and compile a list of EVM instructions that may cause it. Based on this insight, we discuss why we can focus on TODs caused by storage and balance modifications, if we want to analyze attacks that exploit TOD.
+
+We further propose methods to detect and analyze TOD attacks that occurred on the blockchain. 
+
+In this thesis we propose a novel method to simulate transaction order dependency (TOD). By using state changes, we can compute world states the normal and reverse order of two transactions. We use this method to analyze if transactions are TOD. Moreover, we can implement an analysis of various attack characteristics on top of this simulation. The comparison of our method to the results from a previous work shows that we 
+*/
 
 = Data availability and reproducibility
 <cha:reproducibility>

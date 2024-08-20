@@ -6,7 +6,7 @@
   font: "TeX Gyre Heros",
   title: (
     en: "Using state changes to detect and simulate transaction order dependency in Ethereum",
-    de: "Zustandsänderungen und Transaktionsreihenfolgenabhängigkeiten in Ethereum",
+    de: "Simulation und Analyse von Transaktionsreihenfolgen in Ethereum",
   ),
   subtitle: (:),
   lang: "en",
