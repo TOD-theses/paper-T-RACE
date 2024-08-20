@@ -483,7 +483,7 @@ If $(T_A , T_B)$ is approximately TOD, then $(T_A , T_B)$ must also be a TOD can
 
 Therefore, the set of all approximately TOD transaction pairs is a subset of all TOD candidates.
 
-In the case that $(T_A, T_B)$ is TOD but not approximately TOD, the pair $(T_A, T_B)$ may be a TOD candidate but does not have to be one. Per the definitions of TOD and approximately TOD, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$ which implies that $Delta_T_A changesDiffer Delta'_T_A$ must hold. Similar to the previous argument, $Delta_T_A changesDiffer Delta'_T_A$ implies $(R_T_A sect W_T_B) union (W_T_A sect W_T_B) != nothing$. However, in this case we cannot conclude $colls(T_A, T_B) != nothing$, as we excluded $R_T_A sect W_T_A$ from our collision definition.
+In the case that $(T_A, T_B)$ is TOD but not approximately TOD, the pair $(T_A, T_B)$ may be a TOD candidate but does not have to be one. Per the definitions of TOD and approximately TOD, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$ which implies that $Delta_T_A changesDiffer Delta'_T_A$ must hold. Similar to the previous argument, $Delta_T_A changesDiffer Delta'_T_A$ implies $(R_T_A sect W_T_B) union (W_T_A sect W_T_B) != nothing$. However, in this case we cannot conclude $colls(T_A, T_B) != nothing$, because we excluded $R_T_A sect W_T_A$ from our collision definition.
 
 As such, the application of TOD candidates is aligned with the approximation of TOD, but not necessarily the exact TOD definition.
 
@@ -1091,7 +1091,15 @@ The ground truth dataset contains 6,765 attacks in the block range 11,299,000 to
 
 First combine the TOD candidate mining, the TOD detection and TOD attack analysis methods to analyze this block range. The reuslts are discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.
 
-For several of the manual evaluations, we use execution traces from our tool, which show the execution of each instruction in the normal and reverse scenarios. We can then compare the relevant results from the normal scenario, which should be equal to the execution that happened on the blockchain, with results shown on Etherscan#todo[Reference]. This can verify that our state calculation and transaction execution via RPC for the normal scenario is correct. The reverse scenario cannot be compared this way.
+== Evaluation limitations
+
+We note that in our evaluation we verify the correctness of the normal scenario, however we only indirectly verify the reverse scenario.
+
+The results we obtain in the normal scenario can be directly evaluated with data from the blockchain, as the executions in the normal scenario should equal to the executions that happened on the blockchain. For this comparison with blockchain data, such as Ether and token transfers, we use Etherscan#todo[Reference].
+
+Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable to detect TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.
+
+We can also compare our normal scenario with the reverse scenario and evaluate where they differ. We do so in #todo[sec x], where we verify that the first (non-gas) difference between the normal and reverse scenario is related to a state change of one of the transactions.
 
 
 == Overall evaluation <sec:overall-evaluation>
@@ -1256,10 +1264,11 @@ $
 
 For the collisions, we only consider those that are still present after applying all previous filters, in particular the nonce, code and block validator filters.
 
-From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by the remaining attacks. Thus, if we combine the collisions of the 115 remaining attacks, we have the same collisions as if we included these 703 covered attacks.
+From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by the remaining attacks. Thus, if we combine the collisions of the 115 remaining attacks, we have the same collisions as if we included these 703 covered attacks. From the 703 covered attacks, we can match at least#footnote[We use a naive algorithm to detect collision coverage which does not minimize the required attacks for coverage. Thus, the number of attacks covered by a single other attack is a lower bound.] 504 removed attacks $(T_A, T_B)$ with a remaining attack $(T_C, T_D)$, such that $colls(T_A, T_B) subset.eq colls(T_C, T_D)$. Thus, in 504 cases a removed attack is covered by exactly one remaining attack.
 
-From the 703 covered attacks, we have at least 504 attacks that are covered by a single attack from the 115 remaining ones#footnote[We use a naive algorithm to detect collision coverage which does not minimize the required attacks for coverage. Thus, the number of attacks covered by a single other attack is a lower bound.].
+We notice that attacks are concentrated around the same collisions. When we take the top three attacks that were not removed by duplicate limits, we already cover 373 of the 1,210 attacks we remove.
 
+Our calculations of coverages are lower limits, as we only consider the 115 remaining attacks from the ground truth but not the 195 attacks we find that are not in the ground truth. However, all attacks we find are subject to the duplicate limit, therefore some ground truth attacks may have been removed while keeping an attack not in the ground truth which has similar collisions.
 
 == Evaluation of TOD detection
 
@@ -1295,15 +1304,49 @@ Finally, for one attack $T_B$ reverts in both scenarios. The ground truth datase
 
 == Evaluation of TOD attack analysis
 
-// TODO: why do we mark 10 of the 11 attacks we missed for TOD as attacks? Didn't we just claim that they are not TOD? Do they emit different events without storing different states?
-
 We run our TOD attack analysis on the 5,601 attacks from the ground truth. Our analysis reports an attacker gain and victim loss in 4,524 of the cases. In 19 cases we encountered the same errors as for the TOD checking. In further 152 cases, we detect execution inaccuracies. In the remaining 907 cases, our analysis runs without failures but reports a different results than in the ground truth.
 
-From these 907 cases, 850 are labelled as "out of gas" in the ground truth. As discussed in @sec:evaluation-out-of-gas, it seems that these do not necessarily fulfill the attacker gain and victim loss property. Therefore, we do not investigate these cases. We manually evaluate 20 out of the 56 cases without the "out of gas" label.
+From these 907 cases, 850 are labelled as "out of gas" in the ground truth. As discussed in @sec:evaluation-out-of-gas, it seems that these do not necessarily fulfill the attacker gain and victim loss property. Therefore, we do not investigate these cases. We manually evaluate 10 of the 56 cases without the "out of gas" label.
 
 === Manual evaluation of attacks
 
-TBD.
+==== Evaluation of profit calculations
+
+We verify that the transaction pair does not fulfill the attacker gain and victim loss property according to the execution traces of our normal and reverse scenarios. In each case, manually parsing the calls and logs from the execution traces disproves the property.
+
+In five cases, there is a victim gain according to our traces. In three cases, we calculate an attacker loss. In the two other cases, the traces of the attacker's transaction behaves identical in the normal and reverse scenarios. We explain one of these cases more in detail in @app:analysis-TOD.
+
+==== Evaluation of reverse scenario
+
+We further want to verify that our tool correctly executes the reverse scenario.
+
+For each case we pick one of the transactions. For this transaction, we compare the $n$-th executed instruction of the normal scenario with the $n$-th executed instruction of the reverse scenario. We start with $n = 0$ and continue until we find a difference between the executions. For the comparison we use the current EVM stack, memory, program counter, gas and depth.
+
+In one case we do not find any difference, as the transactions are not TOD. In the other nine cases, the first difference is after executing the `SLOAD` instruction, which loads a value from the storage.
+
+When we analyze the execution of the attacker's transaction ($T_A$), we execute it on the states $sigma$ and $sigma + Delta'_T_B$. Because `SLOAD` returns different values for $sigma$ and $sigma + Delta'_T_B$, the accessed storage slot should be modified by $Delta'_T_B$. We verify that in the normal scenario, our trace shows the value this storage slot had before executing $T_A$ according to Etherscan. For the reverse scenario, we compare it against the last `SSTORE` of the execution of $T_B$ in the reverse scenario, i.e. the value that $Delta'_T_B$ changes it to.
+
+We approach the verification of the accessed storage values of $T_B$ similarly. For $T_B$ we use the states $sigma_X_n$ for the normal scenario and $sigma_X_n - Delta_T_A$ for the reverse scenario. We compare the accessed value in the normal scenario with the value it had before executing $T_B$ according to Etherscan. For the reverse scenario, we compare it with the value it had before executing $T_A$ according. We notice that in all these cases, $T_A$ wrote a value to this storage slot that is different from the one $T_B$ reads in the normal scenario. Therefore, there must be intermediary transactions that modify this storage value, possibly causing an indirect dependency.
+
+In summary, we verify that at least the first difference between the normal and reverse scenarios is in accordance with the definition of the normal and reverse scenarios.
+
+==== Evaluation of indirect dependencies
+
+As shown before, there are several attacks where an intermediary transaction modifies a storage slot that is written by $T_A$ and accessed by $T_B$. In this section, we additionally evaluate for a specific kind of indirect dependency.
+
+When we simulate an attack $(T_A, T_B)$, we execute $T_B$ in the reverse scenario on the state $sigma_X_n - Delta_T_A$. Therefore, for all state keys $K in changedKeys(Delta_T_A)$ we use the value at $pre(Delta_T_A)(K)$ and for the other state keys $K in.not changedKeys(Delta_T_A)$ we use $sigma_X_n (K)$.
+
+We now consider an intermediary transaction $T_X$ with the state changes $Delta_T_X$, where $changedKeys(Delta_T_X)$ contains some keys that are changed by $T_A$ and also other keys that are not changed by $T_A$. When we execute $T_B$ on $sigma_X_n - Delta_T_A$, we only overwrite some of the changes of $T_X$ and keep the other changes. Therefore, $T_B$ executes on a state where state changes of $T_X$ are only partially included.
+
+Our evaluation shows that in 2 of the 10 cases we can indeed find an intermediary transaction $T_X$, such that at $T_B$ accesses at least one change of $T_X$ that is overwritten by computing $sigma_X_n - Delta_T_A$, and one change of $T_X$ that is not overwritten. Thus, in these cases $T_B$ uses a possibly incoherent state. We further verify that $(T_A, T_X)$ and $(T_X, T_B)$ are both TOD, however we do not further investigate, how this influences the transaction execution.
+
+==== Unmodelled token events
+
+In one case, the attacker's transaction emits a `Deposit` event. This is not part of the token standards we model in our definition, therefore our profit calculations ignore this event.
+
+This `Deposit` event is emitted by the #link("https://etherscan.io/token/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2#code")[WETH] token when someone converts Ether to WETH tokens. Our analysis only assesses a loss of Ether, but not gain of WETH tokens. Currently, our calculation shows a loss of WETH tokens. This would change if we modelled the `Deposit` event as token gains.
+
+By inspecting the source code at @zhang_erebus-redgiant_2023, we find that they also detect `Deposit` and `Withdrawal` events when they are emitted by the address of the WETH token.
 
 == Performance evaluation
 
@@ -1317,7 +1360,7 @@ After fetching the state changes and transactions, we run the TOD detection and 
 
 Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as the their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
 
-= Data availability
+= Data availability <sec:data-availability>
 TBD.
 
 = Reproducibility

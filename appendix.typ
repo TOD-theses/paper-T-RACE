@@ -1,4 +1,4 @@
-#import "utils.typ": todo
+#import "utils.typ": todo, colls
 
 = Overview of Generative AI Tools Used
 
@@ -35,7 +35,7 @@ The code that updates the storage slot is shown below, located at address `0x8c9
 
 #[
   #show raw.line: it => {
-  [#it.number #it]
+    [#it.number #it]
   }
   ```sol
   contract PriceRegistry {
@@ -51,6 +51,25 @@ The code that updates the storage slot is shown below, located at address `0x8c9
   }
   ```
 ]
+
+== Analysis of TOD <app:analysis-TOD>
+
+We analyze one of the cases where a TOD candidate $(T_A, T_B)$ is not TOD according to our definition, but is reported as an attack by @zhang_combatting_2023. The transaction $T_A$ is #link("https://etherscan.io/tx/0x5cf84067556e7db37fd0279ec3bfe227d71758786cb53f1cc24e20f8afd9f8d8")[0x5cf84067556e7db37fd0279ec3bfe227d71758786cb53f1cc24e20f8afd9f8d8] and $T_B$ is #link("https://etherscan.io/tx/0xd24cffe4cd2dd7c89cc7ec3d38f44f4563d184b5fa9a952b46358a8a8e8176cc")[0xd24cffe4cd2dd7c89cc7ec3d38f44f4563d184b5fa9a952b46358a8a8e8176cc].
+
+To evaluate if this TOD candidate is TOD, we start by determining the collisions of $T_A$ and $T_B$. If the execution of $T_A$ influences $T_B$ or vice versa, it must be at a state key that one of them modifies and the other accesses or modifies as well. For this case study, we evaluate $(W_T_A sect R_T_B) union (W_T_A sect W_T_B) union (R_T_A sect W_T_B)$ to obtain the collisions rather than $colls(T_A, T_B)$, as we do not want to rely on the TOD approximation underlying the definition of $colls(T_A, T_B)$.
+
+We use the `debug_traceTransaction` method to obtain the accessed state keys $R_T_A$ and $R_T_B$ (refer to the @sec:data-availability for the data). We then compare these state modifications $W_T_A$ and $W_T_B$ shown on Etherscan and only find a collision at the balance of the #link("https://etherscan.io/address/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2")[WETH] contract. Therefore, the only way $T_A$ may influence $T_B$, and vice versa, is by modifying and accessing the balance of the WETH contract.
+
+In @tab:state_reading_instructions, we see the instructions that can access balances. The instructions `CALL`, `CALLCODE`, `CREATE`, `CREATE2` and `SELFDESTRUCT` access a balance by sending Ether from the caller to the recipient. These instructions can behave differently depending on whether enough Ether is available. This is not the case, because the transactions transfer less than 3 Ether from the WETH account to another account, but the WETH account had more than 6 million Ether at this time according to the `eth_getBalance` RPC method.
+
+The remaining two instructions that can cause TOD when accessing balances are `BALANCE` and `SELFBALANCE`. We manually inspect the execution traces in the normal scenario to see if these instructions are used to access the balance of the WETH contract.
+
+According to our normal scenario traces, $T_A$ has three executions of `SELFBALANCE` and $T_B$ has two executions of `SELFBALANCE`, however none of these are lookup the balance of the WETH contract. The traces also show no occurrence of the `BALANCE` instruction.
+
+We further verify that our normal scenario traces execute the same instructions as on Etherscan. We compare the number of execution steps from our traces, which matches with those shown by Etherscan (15171 and 9164), thus we assume we execute the same instructions as on the blockchain.
+
+In summary, we ruled out that any instruction accesses the balance of the WETH contract. As this is the only state key that one transaction writes and the other reads or writes, $T_A$ and $T_B$, these transactions cannot be TOD.
+
 
 = Javascript tracer <app:javascript-tracer>
 
