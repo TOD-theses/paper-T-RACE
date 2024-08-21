@@ -8,7 +8,7 @@ I want to express gratitude towards all the companions I had so far. Fooling aro
 
 #v(2em)
 
-I also want to thank Monika di Angelo and Gernot Salzer for their continuous support. With the regular meetings and their inputs and plentitude of constructive feedback, they helped me to steadily progress and improve this work.
+I also want to thank Gernot Salzer and Monika di Angelo for their continuous support. With the regular meetings and their inputs and the plentitude of constructive feedback, they helped me a lot to steadily progress and improve this work.
 
 = Kurzfassung
 

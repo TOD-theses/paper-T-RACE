@@ -10,11 +10,11 @@
   subtitle: (:),
   lang: "en",
   author: (name: "Othmar Lechner", student-number: 11841833),
-  advisor: (
+  advisor: (name: "Gernot Salzer", pre-title: "Ao.Univ.Prof. Dr."),
+  assistants: ((
     name: "Monika di Angelo",
-    pre-title: "Ass.Prof.in Dipl.-Ing.in Mag.a rer.soc.oec. Dr.in techn.",
-  ),
-  assistants: ((name: "Gernot Salzer", pre-title: "Ao.Univ.Prof. Dr."),),
+    pre-title: "Ass.Prof.in Dr.in",
+  ),),
   curriculum: (en: "Software Engineering & Internet Computing", de: "Software Engineering & Internet Computing"),
   keywords: ("Ethereum", "TOD", "Frontrunning"),
   date: datetime.today(),
