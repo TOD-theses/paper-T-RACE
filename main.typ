@@ -1082,7 +1082,7 @@ We note that in our evaluation we verify the correctness of the normal scenario,
 
 The results we obtain in the normal scenario can be directly evaluated with data from the blockchain, as the executions in the normal scenario should equal to the executions that happened on the blockchain. For this comparison with blockchain data, such as Ether and token transfers, we use Etherscan#todo[Reference].
 
-Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable to detect TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.#todo[Add traces to the github repository]
+Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable to detect TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.
 
 We can also compare our normal scenario with the reverse scenario and evaluate where they differ. We do so in #todo[sec x], where we verify that the first (non-gas) difference between the normal and reverse scenario is related to a state change of one of the transactions.
 
@@ -1345,15 +1345,14 @@ After fetching the state changes and transactions, we run the TOD detection and 
 
 Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as the their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
 
-/*
 = Discussion
 
-In this thesis, we precisely define transaction order dependency (TOD) and compile a list of EVM instructions that may cause it. Based on this insight, we discuss why we can focus on TODs caused by storage and balance modifications, if we want to analyze attacks that exploit TOD.
 
-We further propose methods to detect and analyze TOD attacks that occurred on the blockchain. 
+This thesis proposes a method to simulate transaction order dependencies. We precisely define this simulation process and discuss advantages and disadvantages of this approach. Our evaluation shows that it can be used to detect TOD and several attack characteristics, finding more than 80% of the attacks from a ground truth.
 
-In this thesis we propose a novel method to simulate transaction order dependency (TOD). By using state changes, we can compute world states the normal and reverse order of two transactions. We use this method to analyze if transactions are TOD. Moreover, we can implement an analysis of various attack characteristics on top of this simulation. The comparison of our method to the results from a previous work shows that we 
-*/
+Nonetheless, we note that our simulation method and those of two related studies have drawbacks that can lead to analysis results that do not match the execution that happened on the blockchain or are distorted by the influence of intermediary transactions. The method by @torres_frontrunner_2021 removes intermediary transactions for the simulation. On the one hand, this may create results that differ from the blockchain even in the normal transaction order. On the other hand, the different orderings can be compared without potential influences of intermediary transactions. The methods by @zhang_combatting_2023 and us produce results that are equal to the blockchain in the normal order, but can suffer influences from intermediary transactions in the reverse order.
+
+We discuss when influences from intermediary transactions can occur with our method, and thus are able to avoid such cases. However, future work may continue to reduce the influence of intermediary transactions on TOD simulations or analyze the tradeoffs between existing methods.
 
 = Data availability and reproducibility
 <cha:reproducibility>
