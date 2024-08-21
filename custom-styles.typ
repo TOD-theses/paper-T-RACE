@@ -33,6 +33,7 @@
   show: thmrules.with(qed-symbol: $square$)
   show raw.where(block: true): set par(justify: false)
   set page(margin: (top: 4cm, bottom: 10em, left: 3cm, right: 3cm))
+  set text(size: 12pt)
 
   show: page-header-styles
 
