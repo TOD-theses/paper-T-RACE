@@ -34,7 +34,6 @@
 #show figure.where(kind: "algorithm"): set figure(supplement: "Algorithm")
 
 #show: main-matter-styles
-#show: page-header-styles
 #set heading(numbering: "1.1.1.a")
 
 #include "main.typ"
