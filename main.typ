@@ -4,7 +4,7 @@
 
 /*
 Checklist:
-- [ ] past vs present
+- [ ] past vs present (in particular experiments)
 - [ ] reference after or before dot?
 */
 
@@ -410,7 +410,6 @@ Theoretically, the assumption that an attack must influence the transaction it f
 == Definition strengths <sec:definition-strengths>
 
 === Performance
-#todo[Make it more upfront that the normal and reverse scenario definition allows reusing data for the normal scenario and only requires executing $T_A$ and $T_B$ in the reverse scenario.]
 
 To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world state $sigma$, and the state changes from $T_A$, $T_B$ and the intermediary transactions $T_(X_n)$. With the state changes we can compute $sigma_(X_n) - Delta_(T_A) = sigma + Delta_(T_A) + (sum_(i = 0)^n Delta_(T_(X_i))) - Delta_(T_A)$ and then execute $T_B$ on this state. With the recorded state changes $Delta'_T_B$ we can compute $sigma + Delta'_T_B$ and execute $T_A$ on this state. As such, we need one transaction execution to check for the TOD approximation and two transaction executions to check for TOD. Despite including the effect of arbitrarily many intermediary transactions, we do not need to execute them to check for TOD.
 
@@ -751,7 +750,7 @@ contribute 43.0% of all collisions. In total, the collisions occur in only 1,472
 
 @fig:collisions_address_limit depicts how many collisions we get when we only consider the first $n$ collisions for each address. If we set the limit to one collision per address, we end up with 1,472 collisions, which is exactly the number of unique addresses where collisions happened. When we keep 10 collisions per address, we get 3,964 collisions. This criterion already reduces the number of collisions by 73%, while still retaining a sample of 10 collisions for each address.
 
-One goal of this paper is to create a diverse set of attacks for our benchmark#todo[No benchmark anymore]. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are likely related and do not cover a wide range of attack types. To prevent this, we define additional deduplication filters in @sec:deduplication.
+This paper tires to obtain a diverse set of attacks. With such a strong imbalance towards a few contracts, it will take a long time to analyze TOD candidates related to these frequent addresses, and the attacks are likely related and do not cover a wide range of attack types. To prevent this, we define additional deduplication filters in @sec:deduplication.
 
 #figure(
   image("charts/collisions_limited_per_address.png", width: 80%),
@@ -1070,13 +1069,13 @@ First, we combine the TOD candidate mining, the TOD detection, and the TOD attac
 
 == Evaluation limitations
 
-We note that in our evaluation, we verify the correctness of the normal scenario, however we only indirectly verify the reverse scenario#todo[Update this].
+We note that in our evaluation, we verify the correctness of the normal scenario, however our verification of the reverse scenario is limited as we do not have access to a ground truth with which we can compare it.
 
-The results we obtain in the normal scenario can be directly evaluated with data from the blockchain, as the executions in the normal scenario should equal to the executions that happened on the blockchain. For this comparison with blockchain data, such as Ether and token transfers, we use Etherscan#todo[Reference].
+For the normal scenario, we can directly compare it with data from the blockchain, as the executions in the normal scenario should equal the executions that happened on the blockchain. We will use Etherscan @etherscan_ethereum_nodate to access blockchain data.
 
-Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable for detectin TOD attacks by comparing our results to the ground truth dataset. However, when the results differ we cannot directly compare our simulation of the reverse order with the executions used to obtain the ground truth, as we do not have the requirements to rerun the analysis of the ground truth. Therefore, we cannot make a fine-grained analysis to understand where our executions differ. For the cases where our results differ from the ground truth, we provide traces that contain each execution step. This allows future studies to compare their executions of the reverse order to our reverse scenario.
+Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable for detecting TOD attacks by comparing our results to the ground truth dataset. However, we only have the results given in the dataset and not the exact executions of the reverse scenario. Therefore, when we encounter differences we cannot conduct an in-depth analysis to understand why differences occur between our method and the ground truth. To allow future research making more in-depth comparisons we provide traces for all cases that we manually analyze (see @sec:data-availability), which contain each execution step for the normal and reverse scenarios.
 
-We can also compare our normal scenario with the reverse scenario and evaluate where they differ. We do so in #todo[sec x], where we verify that the first (non-gas) difference between the normal and reverse scenario is related to a state change of one of the transactions.
+We can also compare our normal scenario with the reverse scenario and evaluate where these executions differ. We do so in @sec:evaluate-reverse-scenario, where we verify that the first difference between the normal and reverse scenario matches the state calculations we perform according to the definitions of the normal and normal scenario.
 
 
 == Overall evaluation <sec:overall-evaluation>
@@ -1195,8 +1194,8 @@ The filters "Same-value collision" and "Indirect dependency" remove 4,275 TOD ca
     ),
     table.hline(),
     [(unfiltered)], [], [], [5,601], [],
-    [Collision], [], [], [5,600], [1],
-    [Same-value collision], [638,313], [], [3,537], [2,063],
+    [Collision], [(unknown)], [], [5,600], [1],
+    [Same-value collision], [638,313], [(unknown)], [3,537], [2,063],
     [Block windows], [422,384], [215,929], [3,537], [0],
     [Block validators], [288,264], [134,120], [3,537], [0],
     [Nonce collision], [220,687], [67,577], [3,537], [0],
@@ -1209,8 +1208,8 @@ The filters "Same-value collision" and "Indirect dependency" remove 4,275 TOD ca
     [Limited collisions per skeleton], [14,500], [496], [115], [8],
   ),
   caption: flex-caption(
-    [TOD candidate filters evaluation.#todo[Write caption.]],
-    [TOD candidate filters evaluation],
+    [Comparison of all filtered TOD candidates with filtered attacks from the ground truth. Each row shows how many TOD candidate and attacks are filtered by this filter. TOD candidates before filtering for same-value collisions were not compute because of performance limitations.],
+    [Comparison of all filtered TOD candidates with filtered attacks from the ground truth],
   ),
   kind: table,
 )
@@ -1292,7 +1291,7 @@ We verify that the transaction pair does not fulfill the attacker gain and victi
 
 In five cases, there is a victim gain according to our traces. In three cases, we calculate an attacker loss. In the two other cases, the traces of the attacker's transaction behave identical in the normal and reverse scenarios. We explain one of these cases more in detail in @app:analysis-TOD.
 
-==== Evaluation of reverse scenario
+==== Evaluation of reverse scenario <sec:evaluate-reverse-scenario>
 
 We further want to verify that our tool correctly executes the reverse scenario.
 
@@ -1326,7 +1325,7 @@ By inspecting the source code at @zhang_erebus-redgiant_2023, we find that they 
 
 == Performance evaluation
 
-The evaluation of the 1,000 blocks took a total of 75 minutes, averaging to 4.5 seconds per block.#todo[Consistent past / present tense]
+The evaluation of the 1,000 blocks took a total of 75 minutes, averaging to 4.5 seconds per block.
 
 For the TOD candidate mining, we spent 41 minutes fetching the state changes of the 1,000 blocks and inserting them into a database, another 13 minutes filtering the TOD candidates, and 3 minutes for other tasks.
 

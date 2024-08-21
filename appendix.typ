@@ -1,4 +1,4 @@
-#import "utils.typ": todo, colls
+#import "utils.typ": colls
 
 = Overview of Generative AI Tools Used
 

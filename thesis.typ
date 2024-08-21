@@ -1,5 +1,4 @@
 #import "@preview/definitely-not-tuw-thesis:0.1.0": *
-#import "@preview/dashy-todo:0.0.1": todo
 #import "custom-styles.typ": custom-styles
 
 #show: thesis.with(
@@ -44,10 +43,6 @@
 #outline(title: "List of Figures", target: figure.where(kind: image))
 #outline(title: "List of Tables", target: figure.where(kind: table))
 #outline(title: "List of Algorithms", target: figure.where(kind: "algorithm"))
-
-#todo[
-  - Nyx: S&P 2024
-]
 
 #bibliography("refs.bib")
 
