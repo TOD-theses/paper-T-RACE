@@ -2,7 +2,7 @@
 
 = Overview of Generative AI Tools Used
 
-No generative AI tools where used in the process of researching and writing this thesis.
+I used #link("http://grammarly.com/")[Grammarly] to improve the readability of the text. The whole work was analyzed and I applied several small suggestions.
 
 = Case studies
 
