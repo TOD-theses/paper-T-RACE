@@ -12,15 +12,15 @@ Checklist:
 
 Ethereum is a blockchain that keeps track of a world state and updates this state by executing transactions. The transactions can execute so-called smart contracts, which are programs that are stored on the blockchain. As these programs are nearly Turing-complete, they can have vulnerabilities and become exploited.
 
-This thesis focuses on transaction order dependence (TOD), which is a prerequisite for a kind of attack called front-running. TOD means that the state changes performed by transactions depend on the order in which the transactions are executed. In a front-running attack, an attacker sees that someone is about to perform a transaction and then quickly inserts a transaction before it. Because of TOD, executing the attackers' transaction before the victims' transaction yields different state changes, likely beneficial to the attacker, than when executing the victims' transaction first and only afterwards the attackers' transaction.
+This thesis focuses on transaction order dependence (TOD), which is a prerequisite for a kind of attack called front-running. TOD means that the state changes performed by transactions depend on the order in which the transactions are executed. In a front-running attack, an attacker sees that someone is about to perform a transaction and then quickly inserts a transaction before it. Because of TOD, executing the attacker's transaction before the victim's transaction yields different state changes than when execution the victim's transaction first.
 
-This work proposes a method to take a pair of transactions that has been executed on the blockchain and to analyze it (1) in the same order as on the blockchain and (2) in a reversed order, where the originally first transaction is now executed last. When executing the transactions in both orders, we can compare their behaviours to see if they are TOD and also if it exhibits characteristics of a front-running attack.
+This work proposes a method to take a pair of transactions and to simulate the two transactions in both orders. When executing the transactions in both orders, we can compare their behaviours to see if they are TOD and also if it exhibits characteristics of a front-running attack.
 
-We use the state changes of transactions to calculate which world state we need to use for executing the transactions we analyze. This removes the need to execute intermediary transactions that were originally executed between the two transactions we analyze. Furthermore, our method also removes side effects that can occur between the first transaction and intermediary transactions when executing the different transaction orders.
+We use the state changes of transactions to calculate the world states used for transaction execution. This removes the need to execute intermediary transactions that were originally executed between the two transactions we analyze. Instead, we can use their state changes to maintain the effect they had on the second transaction, while updating the world states according to the different orders.
 
-To evaluate our transaction order simulation, we search for transaction pairs that are potentially TOD. To do so, we also use state changes to match transactions that access and modify the same state and define several filters to remove irrelevant transaction pairs. On these transaction pairs, we use our simulation method to check if they are TOD and if they have characteristics of a front-running attack. We check for the characteristics of the ERC-20 multiple withdrawal attack @rahimian_resolving_2019, the TOD properties implemented by Securify @tsankov_securify_2018, and financial gains and losses@zhang_combatting_2023.
+Moreover, we search the blockchain history for transaction pairs that are potentially TOD. We match transactions that access and modify the same state and define several filters to remove irrelevant transaction pairs. On these transaction pairs, we use our simulation method to check if they are TOD and if they have characteristics of a front-running attack. We check for the characteristics of the ERC-20 multiple withdrawal attack @rahimian_resolving_2019, the TOD properties implemented by Securify @tsankov_securify_2018, and financial gains and losses@zhang_combatting_2023.
 
-We show that our concepts can be implemented with endpoints exposed by an archive node. We neither require custom modifications nor local access to an archive node. Also, transactions are executed on the archive node.
+We show that our concepts can be implemented with endpoints exposed by an archive node. We neither require custom modifications nor local access to an archive node.
 
 Overall, our main contributions are:
 
@@ -32,15 +32,15 @@ Overall, our main contributions are:
 
 == Related works
 
-The studies by #cite(<zhang_combatting_2023>, form: "prose") and #cite(<torres_frontrunner_2021>, form: "prose") both detect and analyze front-running attacks that occurred on the Ethereum blockchain. As we discuss later, their approaches to simulate different transaction orders are not precisely defined and come with several drawbacks. Additionally, our work focuses on TOD, a prerequisite of front-running, rather than directly targeting front-running attacks. However, we also implement the attack definition by #cite(<zhang_combatting_2023>, form: "prose") to be able to compare our results with theirs.
+The studies by #cite(<zhang_combatting_2023>, form: "prose") and #cite(<torres_frontrunner_2021>, form: "prose") both detect and analyze front-running attacks that occurred on the Ethereum blockchain. We discuss potential inaccuracies in their simulation approaches. Contrary to these works, our study focuses on TOD, a prerequisite of front-running. However, we also implement the attack definition by #cite(<zhang_combatting_2023>, form: "prose") to compare our results with theirs.
 
 
-#cite(<daian_flash_2020>, form: "prose") detect a specific kind of front-running attack by observing transactions that get executed. They measure so-called arbitrage opportunities, where a single transaction can make net revenue. While this is TOD, as only the first transaction that uses an arbitrage opportunity makes revenue, they do not need to simulate the different transaction orders for their analysis. Similarly, #cite(<wang_impact_2022>, form: "prose") also study a type of front-running attack without simulating different transaction orders.
+#cite(<daian_flash_2020>, form: "prose") detect a specific kind of front-running attack by observing transaction executions. They measure so-called arbitrage opportunities, where a single transaction can make net revenue. While this is TOD, as only the first transaction that uses an arbitrage opportunity makes revenue, they do not need to simulate the different transaction orders for their analysis. Similarly, #cite(<wang_impact_2022>, form: "prose") also study a type of front-running attack without simulating different transaction orders.
 
 
-#cite(<perez_smart_2021>, form: "prose") explicitly analyze transactions for TOD. They do so by recording for each transaction which storage it accessed and modified and then matching transactions where these overlap. Our work discusses the theoretical background of this approach and extends it to find transaction pairs that are potentially TOD.
+#cite(<perez_smart_2021>, form: "prose") explicitly analyze transactions for TOD. They do so by recording for each transaction which storage it accessed and modified and then matching transactions where these overlap. Our work discusses the theoretical background of this approach and our method to detect potential TODs works in a similar way as theirs.
 
-Several other works provide frameworks to analyze attack transactions in Ethereum @zhang_txspector_2020@wu_time-travel_2022@torres_frontrunner_2021@chen_soda_2020. None of these frameworks supports the simulation of transactions in different orders, therefore we cannot directly use them to detect TOD. Regarding the use of archive nodes, an evaluation by #cite(<wu_time-travel_2022>, form: "prose") states that replaying transactions with them is slow, taking "[...] more than 47 min to replay 100 normal transactions", thus prompting a different framework for analysis. However, #cite(<ferreira_torres_eye_2021>, form: "prose") shows that it is indeed feasible to use archive nodes for attack detection. We follow this work and use archive nodes to implement our simulation method.
+Several other works provide frameworks to analyze attack transactions in Ethereum @ferreira_torres_eye_2021@zhang_txspector_2020@wu_time-travel_2022@chen_soda_2020. None of these frameworks supports the simulation of transactions in different orders, therefore we cannot directly use them to detect TOD. Regarding the use of archive nodes, an evaluation by #cite(<wu_time-travel_2022>, form: "prose") states that replaying transactions with them is slow, taking "[...] more than 47 min to replay 100 normal transactions". However, #cite(<ferreira_torres_eye_2021>, form: "prose") show that it is indeed feasible to use archive nodes for attack analysis. We follow this work and use archive nodes to implement our simulation method.
 
 = Background
 This chapter provides background knowledge on Ethereum that is helpful for following the remaining paper. We also introduce a notation for these concepts.
@@ -152,10 +152,10 @@ Execution clients implement the Ethereum JSON-RPC specification @noauthor_ethere
 In Ethereum, tokens are assets managed by contract accounts @chen_tokenscope_2019. The contract account stores which address holds how many tokens. There are several token standards that a contract account can implement, allowing standardized methods to interact with the token. For instance, the ERC-20 standard defines a `transfer` method, which allows the holder of a token to transfer the token to someone else @vogelsteller_erc-20_nodate.
 
 = Transaction order dependency
-In this chapter we discuss our definition of transaction order simulations and transaction order dependency (TOD). We first introduce the idea of TOD with a basic definition and then show several shortcomings of this simple definition. Based on these insights, we construct a more precise definition that we will use for our analysis.
+In this chapter we discuss our definitions of transaction order simulations and transaction order dependency (TOD). We first introduce the idea of TOD with a preliminary definition and then show several shortcomings of this simple definition. Based on these insights, we construct precise definitions of TOD and our transaction order simulation.
 
 == Approaching TOD
-Intuitively, a pair of transactions $(T_A , T_B)$ is transaction order dependent (TOD), if the result of sequentially executing the transactions depends on the order of their execution. As a preliminary TOD definition we use following:
+Intuitively, a pair of transactions $(T_A , T_B)$ is transaction order dependent (TOD), if the result of sequentially executing the transactions depends on the order of their execution. As a preliminary TOD definition we use the following:
 
 $
   sigma ->^(T_A) sigma_1 ->^(T_B) sigma' \
@@ -175,50 +175,59 @@ We provide two examples to illustrate how TOD can be exploited.
 
 The first example is an attack from a dataset by @torres_frontrunner_2021#footnote[The attacker transaction is #link("https://etherscan.io/tx/0x15c0d7252fa93c781c966a98ab46a1c8c086ca2a0da7eb0a7a06c522818757da")[0x15c0d7252fa93c781c966a98ab46a1c8c086ca2a0da7eb0a7a06c522818757da], and the victim transaction is #link("https://etherscan.io/tx/0x282e4de019b59a50b89c1fdc2e70c4bbd45a7ad7f7a1a6d4807a587b5fcdcdf6")[0x282e4de019b59a50b89c1fdc2e70c4bbd45a7ad7f7a1a6d4807a587b5fcdcdf6].]. A simplified version of the vulnerable contract with added comments is presented below. It allows depositing some Ether and locking it with a password, and then anyone with the password can withdraw this Ether.
 
-```solidity
-contract PasswordEscrow {
-  struct Transfer {
-    address from;
-    uint256 amount;
+#figure(
+  kind: "code",
+  supplement: "Contract",
+  caption: flex-caption(
+    [The `PasswordEscrow` contract. This is a simplified version with added comments, based on the source code from Etherscan @etherscan_ethereum_nodate.],
+    [The `PasswordEscrow` contract.],
+  ),
+)[
+  ```solidity
+  contract PasswordEscrow {
+    struct Transfer {
+      address from;
+      uint256 amount;
+    }
+
+    mapping(bytes32 => Transfer) private transferToPassword;
+
+    function deposit(bytes32 _password) public payable {
+      // REMARK: this stores an entry for the password and saves the amount of Ether
+      // that was sent along the transaction
+      bytes32 pass = sha3(_password);
+      transferToPassword[pass] = Transfer(msg.sender, msg.value);
+    }
+
+    function getTransfer(bytes32 _password) public payable {
+      // REMARK: this verifies that an entry for the password exists
+      // and gets the amount of Ether that was deposited for the password
+      require(
+        transferToPassword[sha3(_password)].amount > 0
+      );
+      bytes32 pass = sha3(_password);
+      uint256 amount = transferToPassword[pass].amount;
+
+      transferToPassword[pass].amount = 0;
+
+      // REMARK: this transfers the Ether to the account that transaction's sender
+      msg.sender.transfer(amount);
+    }
   }
+  ```
+] <contract:password-escrew>
 
-  mapping(bytes32 => Transfer) private transferToPassword;
+The victim previously interacted with the contract to deposit some Ether and lock it with a password. For the sake of the argument, we ignore that the password is already public at this step. This could be fixed, e.g. by directly submitting `sha3(password)` rather than the password itself, without resolving the TOD issue we discuss here.
 
-  function deposit(bytes32 _password) public payable {
-    // REMARK: this stores an entry for the password and saves the amount of Ether
-    // that was sent along the transaction
-    bytes32 pass = sha3(_password);
-    transferToPassword[pass] = Transfer(msg.sender, msg.value);
-  }
+Later, the victim tried to withdraw this Ether by creating a transaction that calls `getTransfer` with the password. However, in the time between the transaction submission and its inclusion in a block, an attacker saw this transaction and determined that they can perform the Ether withdrawal themselves. They copied the transaction data, including the password, and submitted their own transaction with a higher gas price than the victim's. The attacker's transaction ended up being executed first and withdrew all the Ether.
 
-  function getTransfer(bytes32 _password) public payable {
-    // REMARK: this verifies that an entry for the password exists
-    // and gets the amount of Ether that was deposited for the password
-    require(
-      transferToPassword[sha3(_password)].amount > 0
-    );
-    bytes32 pass = sha3(_password);
-    uint256 amount = transferToPassword[pass].amount;
-
-    transferToPassword[pass].amount = 0;
-
-    // REMARK: this transfers the Ether to the account that transaction's sender
-    msg.sender.transfer(amount);
-  }
-}
-```
-
-In the attack, the victim interacted with the contract to deposit some Ether and lock it with a password. We ignore that the password is already public at this step, because all transactions and their inputs are public in Ethereum. This could be fixed, e.g. by directly submitting `sha3(password)`, without resolving the TOD issue we discuss here.
-
-Later, the victim tried to withdraw this Ether by creating a transaction that calls `getTransfer` with the password. However, in the time between the transaction submission and its inclusion in a block, an attacker saw this transaction and determined that they can perform the Ether withdrawal themselves. They copied the transaction data and submitted their own transaction with a higher gas price than the victim's. The attackers' transaction ended up being executed first and withdraw all the Ether.
-
-If we map this attack to our preliminary TOD definition above, executing the attackers' transaction first results in a higher balance for the attacker, while executing the victims' transaction first in a higher balance for the victim. Therefore, we would have $sigma' != sigma''$.
+If we map this attack to our preliminary TOD definition above, the first transaction that executes will withdraw the Ether and thus increase the sender's balance. If the attacker's transaction executes first, we end up in a state where the attacker has more balance than if the victim's transaction is executed first. Therefore, $sigma' != sigma''$.
 
 === ERC-20 multiple withdrawal <sec:erc-20-multiple-withdrawal>
 
-As a second example, we explain the ERC-20 multiple withdrawal attack @rahimian_resolving_2019. Contracts that implement the ERC-20 token must include an `approve` method @vogelsteller_erc-20_nodate. This method takes as parameters a `spender` and a `value` and allows the `spender` to use `value` tokens from your account. For instance, when some account $a$ calls `approve(b, 0x1234)`, then `b` can transfer `0x1234` tokens from $a$ to any other account. If the `approve` method is called another time, the currently approved value is overwritten with the new value, regardless of the previous value.
+As a second example, we explain the ERC-20 multiple withdrawal attack @rahimian_resolving_2019. Contracts that implement the ERC-20 token must include an `approve` method @vogelsteller_erc-20_nodate. This method takes as parameters a `spender` and a `value` and allows the `spender` to spend `<value>` tokens from your account. For instance, when some account $a$ calls `approve(b, 0x1234)`, then `b` can transfer `0x1234` tokens from $a$ to any other account. If the `approve` method is called another time, the currently approved value is overwritten with the new value, regardless of the previous value.
 
-We illustrate that approvals can be TOD in @tab:erc20-multiple-withdrawal-example. In the benign scenario, $b$ spends one token and remains with two tokens that are still approved. However, in the attack scenario, $b$ spends one token and only afterwards $a$ approves $b$ to spend three tokens. Therefore, $b$ remains with three tokens that are still approved.
+We illustrate that approvals and the spending of approved tokens can be TOD in @tab:erc20-multiple-withdrawal-example. In the benign scenario, $b$ spends one token and remains with two tokens that are still approved. However, in the attack scenario, $b$ spends one token and only afterwards $a$ approves $b$ to spend three tokens. Therefore, $b$ remains with three tokens approved tokens instead of two. As such, changing the order of the second and third transaction results in different states, hence they are TOD.
 
 From the perspective of $a$, they only wanted to allow $b$ to use three tokens. However, when $b$ reacts to a pending approval by executing a `transferFrom` before the approval is included in a block, then $b$ is able to use more than three tokens in total. This happened in the attack scenario, where the `transferFrom` is executed before the second `approve` got included in a block.
 
@@ -249,8 +258,6 @@ From the perspective of $a$, they only wanted to allow $b$ to use three tokens. 
     [Benign and attack scenario for ERC-20 approvals.],
   ),
 ) <tab:erc20-multiple-withdrawal-example>
-
-
 
 
 == Relation to previous works <sec:tod-relation-previous-works>
@@ -343,7 +350,7 @@ Similar to the case with the block environment, this could lead to differences b
 
 == TOD simulation <sec:tod-simulation>
 
-To address the issues above, we provide a definition that explicitly states the used world states and block environments while also taking intermediary transactions into account:
+To address the issues above, we define a TOD simulation method that explicitly defines the used world states and block environments while also taking intermediary transactions into account:
 
 #definition("Normal and reverse scenarios")[
   Consider a sequence of transactions, with $sigma$ being the world state right before $T_A$ was executed on the blockchain:
@@ -352,14 +359,14 @@ To address the issues above, we provide a definition that explicitly states the 
 
   Let $Delta_T_A$ and $Delta_T_B$ be the corresponding state changes from executing $T_A$ and $T_B$, and let all transactions be executed in the same block environment as they were executed on the blockchain.
 
-  Let $Delta'_T_B$ be the state change when executing $(sigma_X_n - Delta_T_A) ->^(T_B) sigma'_B$. Further, let $Delta'_T_A$ be the state change when executing $(sigma + Delta'_T_B) ->^(T_A) sigma'_A$.
+  Let $Delta'_T_B$ be the state change when executing $(sigma_X_n - Delta_T_A) ->^(T_B) sigma'_B$ and $Delta'_T_A$ be the state change when executing $(sigma + Delta'_T_B) ->^(T_A) sigma'_A$.
 
   We define $Delta_T_A$ and $Delta_T_B$ to be the state changes from the normal scenario and $Delta'_T_A$ and $Delta'_T_B$ to be the state changes from the reverse scenario.
 ]
 
-The normal scenario represents the order $T_A -> T_B$. The state changes $Delta_T_A$ and $Delta_T_B$ are equal to the ones observed on the blockchain, as we execute the transactions in their original block environment and their original prestate.
+The normal scenario represents the order $T_A -> T_B$. The state changes $Delta_T_A$ and $Delta_T_B$ are equal to the ones observed on the blockchain, as we execute the transactions in their original block environment and with their original prestate.
 
-The reverse scenario models the order $T_B -> T_A$. As $T_B$ now occurs before $T_A$, we execute $T_B$ on a state that does not contain the changes of $T_A$. We do so by taking the world state exactly before executing $T_B$, namely $sigma_X_n$, and then removing the state changes of $T_A$ by computing $sigma_X_n - Delta_T_A$. Executing $T_B$ on $sigma_X_n - Delta_T_A$ gives us the state change $Delta'_T_B$. To model the execution of $T_A$ after $T_B$, we take the state $sigma$ on which $T_A$ was originally executed and add the state changes $Delta'_T_B$.
+The reverse scenario models the order $T_B -> T_A$, where $T_B$ occurs before $T_A$. Therefore, we execute $T_B$ on a state that does not contain the changes of $T_A$. We do so by taking the world state exactly before executing $T_B$, namely $sigma_X_n$, and then removing the state changes of $T_A$ by computing $sigma_X_n - Delta_T_A$. Executing $T_B$ on $sigma_X_n - Delta_T_A$ gives us the state change $Delta'_T_B$. To model the execution of $T_A$ after $T_B$, we take the state $sigma$ on which $T_A$ was originally executed and add the state changes $Delta'_T_B$.
 
 /*
 Additionally, for the special case that $T_A$ and $T_B$ do not have intermediary transactions, we can compute the states we would get from the preliminary definition using the normal and reverse scenarios:
@@ -391,21 +398,21 @@ Based on the definition of normal and reverse scenarios, we define TOD as follow
 
 Consider the example of the ERC-20 multiple withdrawal from @sec:erc-20-multiple-withdrawal, with $T_A$ being the attacker transaction that calls `transferFrom(a, b, 1)` and $T_B$ being the victim transaction that calls `approve(b, 3)`. In the normal scenario, we have shown that the attacker remains with three approved tokens, while in the reverse scenario, only two tokens would remain. Intuitively, this satisfies ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$, as the change approved tokens differs between the normal and the reverse scenario.
 
-More formally, let $K$ be the state key that tracks how many tokens are approved by $a$ for $b$. Initially, one token is approved, therefore $sigma(K) = 1$. When executing $T_A$ in the normal scenario, where the attacker spends the one approved token, this changes to $sigma(K) = 0$. Therefore, we have $post(Delta_T_A)(K) - pre(Delta_T_A)(K) = -1$. Further executing $T_B$ in the normal scenario sets $sigma(K) = 3$, therefore $post(Delta_T_B)(K) - pre(Delta_T_B)(K) = 3$. When we add up these two state changes, we get an overall state change of $2$ for the state at key $K$. However, doing the same calculations for the reverse scenario results in an overall state change of $1$ for $K$, as $T_B$ first increases it by two and $T_A$ then reduces it by one. As the changes differ between the normal and reverse scenario, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ and $(T_A, T_B)$ is TOD.
+More formally, let $K$ be the state key that tracks how many tokens are approved by $a$ for $b$. Initially, one token is approved, therefore $sigma(K) = 1$. When executing $T_A$ in the normal scenario, where the attacker spends the one approved token, this changes to $sigma(K) = 0$. Therefore, we have a change of $post(Delta_T_A)(K) - pre(Delta_T_A)(K) = -1$. We then continue to execute $T_B$ in the normal scenario, which sets $sigma(K) = 3$, therefore $post(Delta_T_B)(K) - pre(Delta_T_B)(K) = 3$. When we add up these two state changes, we get an overall state change of $2$ for the state at key $K$. However, doing the same calculations for the reverse scenario results in an overall state change of $1$ for $K$, as $T_B$ first increases it by two and $T_A$ then reduces it by one. As the overall changes differ between the normal and reverse scenario, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ and $(T_A, T_B)$ is TOD.
 
-Similarly, for the password leaking example in @sec:password-leaking we showed that the execution order determines who can withdraw the stored Ether. If the attacker's transaction is executed first, they withdraw the Ether. If it is executed second, the attacker does not withdraw any Ether. Therefore, the state change at the key $stateKey("balance", italic("attacker"))$ depends on the transaction order, and thus, the transactions are TOD.
+Similarly, for the password leaking example in @sec:password-leaking we showed that the execution order determines who can withdraw the stored Ether. If the attacker's transaction is executed first, they withdraw the Ether. If it is executed second, the attacker does not withdraw any Ether. Therefore, the change at the state key $K = stateKey("balance", italic("attacker"))$ depends on the transaction order, and thus, the transactions are TOD.
 
 == TOD approximation <sec:tod-approximation>
 
-This paper focuses on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$ to affect the behaviour of $T$ with this. Therefore, we assume that the first transaction tries to influence the second transaction, which implies that in every TOD attack, the state changes of $T_B$ should be dependent on the transaction order. We use this assumption to define an approximation of TOD:
+This paper focuses on detecting TOD attacks, in which the attacker tries to insert a transaction prior to some transaction $T$. We assume that the first transaction tries to influence the second transaction, which implies that in every TOD attack, the state changes of $T_B$ should be dependent on the transaction order. We use this assumption to define an approximation of TOD:
 
 #definition("Approximately TOD")[
-  Let $T_A$ and $T_B$ be two transactions and with the corresponding state changes $Delta_T_B$ from the normal scenario and $Delta'_T_B$ from the reverse scenario.
+  Let $T_A$ and $T_B$ be two transactions with the corresponding state changes $Delta_T_B$ from the normal scenario and $Delta'_T_B$ from the reverse scenario.
 
   We say that $(T_A, T_B)$ is approximately TOD if and only if $Delta_T_B changesDiffer Delta'_T_B$.
 ]
 
-Theoretically, the assumption that an attack must influence the transaction it front-runs does not hold, as one can imagine an attack where the inserted transaction does not modify the transaction $T$. For example, if $T$ leaks a password that can be used to withdraw Ether, but at the same time, $T$ locks the contract that contains this Ether. An attacker could use the password to withdraw the Ether without necessarily influencing the execution of $T$ and would need front-run $T$ because of the contract locking. However, we are not aware of literature that showcases such attacks.
+Theoretically, the assumption that an attack must influence the transaction it front-runs does not hold, as one can imagine an attack where the inserted transaction does not modify the transaction $T$. For example, if $T$ leaks a password that can be used to withdraw Ether, but at the same time, $T$ locks the contract that contains this Ether. An attacker could use the password to withdraw the Ether without necessarily influencing the execution of $T$ and would need to front-run $T$ because of the contract locking. However, we are not aware of examples in the literature that showcase such attacks.
 
 == Definition strengths <sec:definition-strengths>
 
@@ -415,11 +422,11 @@ To check if two transactions $T_A$ and $T_B$ are TOD, we need the initial world 
 
 When we want to check $n$ transactions for TOD, there are $frac(n^2 - n, 2)$ possible transaction pairs. Thus if we want to test each pair for TOD we end up with a total of $frac(n^2 - n, 2)$ transaction executions for the approximation and $n^2 - n$ executions for the exact TOD check. Similar to @torres_frontrunner_2021 and @zhang_combatting_2023, we can filter irrelevant transaction pairs to reduce the search space.
 
-Depending on the available world states and state changes, the exact number of required transaction executions and the method to compute world states may differ. For instance, the archive nodes Erigon and Reth currently only store state changes for each block, but not on a transaction level @noauthor_erigon_2023@noauthor_reth_2024-1. We show in @sec:tod-detection how checking for TOD works with such constraints. Other systems, such as EthScope, and Erigon 3, store changes for every transaction @wu_time-travel_2022@rebuffo_erigon_2024. However, EthScope is not publicly available anymore and Erigon 3 is still in development.
+Depending on the available world states and state changes, the exact number of required transaction executions and the method to compute world states may differ. For instance, the archive nodes Erigon 2 and Reth currently only store state changes for each block, but not on a transaction level @noauthor_erigon_2023@noauthor_reth_2024-1. We show the state calculations under such constraints in @sec:tod-detection. Other systems, such as EthScope @wu_time-travel_2022, and Erigon 3 @rebuffo_erigon_2024, store changes for every transaction. However, EthScope is not publicly available anymore and Erigon 3 is still in development.
 
 === Similarity to blockchain executions
 
-With our definition, the state changes $Delta_T_A$ and $Delta_T_B$ from the normal execution are equivalent to the state changes that happened on the blockchain. Also, the reverse order is closely related to the state from the blockchain, as we start with the world states before $T_A$ and $T_B$ and only change state keys that were modified by $T_A$ and $T_B$, thus only the state keys relevant to analyze for TOD. Furthermore, we prevent the effects of block environment changes by using the same environments as on the blockchain.
+With our definition, the state changes $Delta_T_A$ and $Delta_T_B$ from the normal execution are equivalent to the state changes that happened on the blockchain. Also, the reverse order is closely related to the state from the blockchain, as we start with the world states before $T_A$ and $T_B$ and only change state keys that were modified by $T_A$ and $T_B$, thus only the state keys relevant for TOD simulation. Furthermore, we prevent the effects of block environment changes by using the same environments as on the blockchain.
 
 This contrasts with other implementations, where transactions are executed in different block environments than originally, a different world state is used for the first transaction or the effect of intermediary transactions is ignored. All three cases can alter the execution of $T_A$ and $T_B$, such that the result is not closely related to the blockchain.
 
@@ -432,11 +439,11 @@ In some cases, the transaction order can affect the execution of the individual 
 
 For example, consider the case where both $T_A$ and $T_B$ multiply a value in a storage slot by 5. If the storage slot initially has the value 1, then executing both $T_A$ and $T_B$ will result in 25, regardless of the order. However, the state changes $Delta_T_B$ and $Delta'_T_B$ are different, as for one scenario, the value changes from 1 to 5 and for the other from 5 to 25. Therefore, this would be classified as approximately TOD.
 
-Note that the approximation is robust against the cases where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta'_T_B$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equivalence uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus considering $Delta_T_B changesEqual Delta'_T_B$.
+Note that the approximation is robust against the cases where the absolute values differ, but the change is constant. For instance, if both $T_A$ and $T_B$ would increase the storage slot by 5 rather than multiplying it, the state changes $Delta_T_B$ and $Delta'_T_B$ would be from 1 to 6 and from 6 to 11. As our definition for state changes equivalence uses the difference between the state before and after execution, we would compare the change $6 - 1 = 5$ against $11 - 6 = 5$, thus $Delta_T_B changesEqual Delta'_T_B$.
 
 === Indirect dependencies <sec:weakness-indirect-dependencies>
 
-An intuitive interpretation of our definition is that we compare $T_A -> T_(X_i) -> T_B$ with $T_(X_i) -> T_B$, i.e. reckon what happens if $T_A$ is not executed first but last. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, not executing $T_A$ before the intermediary transactions may influence them and thus indirectly change the behaviour of $T_B$. Then, we do not know if $T_A$ directly influences $T_B$, or only through some interplay with intermediary transactions. Similarly, when we execute $T_A$ last and it behaves differently, we do not know if this is because of an interaction with $T_B$ or an intermediary transaction.
+An intuitive interpretation of our definition is that we compare $T_A -> T_X_i -> T_B$ with $T_X_i -> T_B -> T_A$, i.e. reckon what happens if $T_A$ is not executed first but last. However, the definition we provide does not perfectly match this concept, because it does not consider interactions between $T_A$ and the intermediary transactions $T_(X_i)$. In the intuitive model, not executing $T_A$ before the intermediary transactions may influence them and thus indirectly change the behaviour of $T_B$. Then, we do not know if $T_A$ directly influences $T_B$, or only through some interplay with intermediary transactions. Similarly, when we execute $T_A$ last and it behaves differently, we do not know if this is because of an interaction with $T_B$ or an intermediary transaction.
 
 Therefore, our exclusion of interactions between $T_A$ and $T_(X_i)$ may be desirable to focus only on interactions between $T_A$ and $T_B$, however it can cause divergences between our analysis results and what would have happened on blockchain.
 
@@ -470,13 +477,13 @@ We will refer to a transaction pair $(T_A , T_B)$, where $T_A$ was executed befo
 
 A TOD candidate is not necessarily TOD or approximately TOD. For instance, consider the case that $T_B$ only reads the value that $T_A$ wrote but never uses it for any computation. This would be a TOD candidate, as they have a collision, however the result of executing $T_B$ is not influenced by this collision.
 
-If $(T_A , T_B)$ is approximately TOD, then $(T_A , T_B)$ must also be a TOD candidate. We can only have $Delta_T_B changesDiffer Delta'_T_B$ if the state it accesses or modifies differs between the normal and reverse scenario. For this to happen, $T_A$ must modify this state, therefore $(W_T_A sect R_T_B) union (W_T_A sect W_T_B) != nothing$. This is equivalent to $colls(T_A, T_B) != nothing$, showing that $(T_A, T_B)$ must be a TOD candidate.
+If $(T_A , T_B)$ is approximately TOD, then $(T_A , T_B)$ must also be a TOD candidate. We can only have $Delta_T_B changesDiffer Delta'_T_B$ if the state that $T_B$ accesses or modifies differs between the normal and reverse scenarios. For this to happen, $T_A$ must modify this state, therefore $(W_T_A sect R_T_B) union (W_T_A sect W_T_B) != nothing$. This is equivalent to $colls(T_A, T_B) != nothing$, showing that $(T_A, T_B)$ must be a TOD candidate.
 
 Therefore, the set of all approximately TOD transaction pairs is a subset of all TOD candidates.
 
-In the case that $(T_A, T_B)$ is TOD but not approximately TOD, the pair $(T_A, T_B)$ may be a TOD candidate but does not have to be one. Per the definitions of TOD and approximately TOD, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ but $Delta_T_B changesEqual Delta'_T_B$ which implies that $Delta_T_A changesDiffer Delta'_T_A$ must hold. Similar to the previous argument, $Delta_T_A changesDiffer Delta'_T_A$ implies $(R_T_A sect W_T_B) union (W_T_A sect W_T_B) != nothing$. However, in this case we cannot conclude $colls(T_A, T_B) != nothing$, because we excluded $R_T_A sect W_T_A$ from our collision definition.
+In the case that $(T_A, T_B)$ is TOD but not approximately TOD, the pair $(T_A, T_B)$ may be a TOD candidate but does not have to be one. Per the definitions of TOD and approximately TOD, we have ${Delta_T_A, Delta_T_B} changesDiffer {Delta'_T_A, Delta'_T_B}$ and $Delta_T_B changesEqual Delta'_T_B$ which implies that $Delta_T_A changesDiffer Delta'_T_A$ must hold. Similar to the previous argument, $Delta_T_A changesDiffer Delta'_T_A$ implies $(R_T_A sect W_T_B) union (W_T_A sect W_T_B) != nothing$. However, in this case we cannot conclude $colls(T_A, T_B) != nothing$, because we excluded $R_T_A sect W_T_A$ from our collision definition.
 
-As such, the application of TOD candidates aligns with the approximation of TOD, but not necessarily the exact TOD definition.
+As such, the definition of TOD candidates aligns with the approximation of TOD, but not necessarily the exact TOD definition.
 
 == Causes of state collisions
 This section discusses what can cause two transactions $T_A$ and $T_B$ to have state collisions. To do so, we show the ways a transaction can access and modify the world state.
@@ -560,7 +567,7 @@ Our definition of TOD is very broad and marks many transaction pairs as TOD. For
 
 #proposition[For every transaction $T_B$ after the London upgrade#footnote[We reference the London upgrade here, as this introduced the base fee for transactions.], there exists a transaction $T_A$ such that $(T_A , T_B)$ is TOD.]
 #proof[
-  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee. @wood_ethereum_2024[p.8-9] Therefore, we must have $sigma(stateKey("balance", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))(stateKey("balance", italic("sender"))) < v_0$ and $post(Delta_(T_A))(stateKey("balance", italic("sender"))) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
+  Consider an arbitrary transaction $T_B$ with the sender being some address $italic("sender")$. The sender must pay some upfront cost $v_0 > 0$, because they must pay a base fee @wood_ethereum_2024[p.8-9]. Therefore, we must have $sigma(stateKey("balance", italic("sender"))) gt.eq v_0$. This requires that a previous transaction $T_A$ increased the balance of $italic("sender")$ to be high enough to pay the upfront cost, i.e. $pre(Delta_(T_A))(stateKey("balance", italic("sender"))) < v_0$ and $post(Delta_(T_A))(stateKey("balance", italic("sender"))) gt.eq v_0$.#footnote[For block validators, their balance could have also increased from staking rewards, rather than a previous transaction. However, this would require that a previous transaction gave them enough Ether for staking in the first place. @noauthor_proof--stake_nodate]
 
   When we calculate $sigma - Delta_(T_A)$ for our TOD definition, we would set the balance of $italic("sender")$ to $pre(Delta_(T_A))(("balance", italic("sender"))) < v_0$ and then execute $T_B$ based on this state. In this case, $T_B$ would be invalid, as the $italic("sender")$ would not have enough Ether to cover the upfront cost.
 ]
@@ -590,7 +597,7 @@ The "Block windows", "Same senders" and "Recipient Ether transfer" filters have 
     align: (left, left),
     table.header([Filter name], [Description of filter criteria]),
     table.hline(),
-    [Same-value collision], [Drop collision if $T_A$ writes a different value than the one accessed or overwritten by $T_B$.],
+    [Same-value collision], [Drop collision if $T_A$ writes a different value than the value accessed or overwritten by $T_B$.],
     [Block windows], [Drop candidate if $T_A$ and $T_B$ are 25 or more blocks apart.],
     [Block validators], [Drop collisions on the block validator’s balance.],
     [Nonce and code collision], [Drop nonce and code collisions.],
@@ -1061,21 +1068,21 @@ The Javascript tracer is described in @app:javascript-tracer. When executing a t
 
 = Evaluation <sec:evaluation>
 
-In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as ground truth to evaluate our TOD detection and the detection of the attacker gain and victim loss characteristics. For the Securify and ERC-20 multiple withdrawal characteristics, we rely solely on a manual evaluation.
+In this section, we evaluate the methods proposed above. We use a dataset from @zhang_combatting_2023 as a ground truth to evaluate our TOD candidate mining, the TOD detection and the detection of the attacker gain and victim loss characteristic. For the Securify and ERC-20 multiple withdrawal characteristics, we rely solely on a manual evaluation.
 
-The ground truth dataset contains 6,765 attacks in the block range of 11,299,000 to 11,300,000. From these attacks, 5,601 do not contain a profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range, and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, showing that our method works well for this ground truth indirectly shows also that it works well for the results of @torres_frontrunner_2021.
+The ground truth dataset contains 6,765 attacks in the block range of 11,299,000 to 11,300,000. From these attacks, 5,601 contain no profit transaction, which we excluded from our definition of the attacker gain and victim loss property. The study by @torres_frontrunner_2021 also investigated this block range, and the attacks they found are a subset of the 6,765 attacks @zhang_combatting_2023. Therefore, showing that our method works well for this ground truth indirectly also shows that it works well for the results of @torres_frontrunner_2021.
 
-First, we combine the TOD candidate mining, the TOD detection, and the TOD attack analysis method to analyze this block range. The results are discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare each step individually with the ground truth to check for false negatives.
+First, we combine the TOD candidate mining, the TOD detection, and the TOD attack analysis method to analyze this block range. The results are discussed in @sec:overall-evaluation, where we evaluate our method for false positives. Afterwards, we compare the results of each step individually with the ground truth to check for false negatives.
 
 == Evaluation limitations
 
-We note that in our evaluation, we verify the correctness of the normal scenario, however our verification of the reverse scenario is limited as we do not have access to a ground truth with which we can compare it.
+We note that in our evaluation, we verify the correctness of the normal scenario, however our verification of the reverse scenario is limited as we do not have access to a ground truth for comparison.
 
-For the normal scenario, we can directly compare it with data from the blockchain, as the executions in the normal scenario should equal the executions that happened on the blockchain. We will use Etherscan @etherscan_ethereum_nodate to access blockchain data.
+For the normal scenario, we can directly compare it with data from the blockchain, as the executions in the normal scenario should equal the executions that happened on the blockchain. We will use Etherscan @etherscan_ethereum_nodate to access this blockchain data.
 
-Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable for detecting TOD attacks by comparing our results to the ground truth dataset. However, we only have the results given in the dataset and not the exact executions of the reverse scenario. Therefore, when we encounter differences we cannot conduct an in-depth analysis to understand why differences occur between our method and the ground truth. To allow future research making more in-depth comparisons we provide traces for all cases that we manually analyze (see @sec:data-availability), which contain each execution step for the normal and reverse scenarios.
+Contrary, for the reverse scenario, we simulate a transaction order that did not occur on the blockchain. We can verify that our normal and reverse scenarios are suitable for detecting TOD attacks by comparing our results to the ground truth dataset. However, we only have the results given in the dataset and not the exact executions of the reverse scenario. Therefore, when we encounter differences we cannot conduct an in-depth analysis to understand why differences occur between our method and the ground truth. To allow future research making in-depth comparisons we provide traces for all cases that we manually analyze (see @sec:data-availability), which contain each execution step for the normal and reverse scenarios.
 
-We can also compare our normal scenario with the reverse scenario and evaluate where these executions differ. We do so in @sec:evaluate-reverse-scenario, where we verify that the first difference between the normal and reverse scenario matches the state calculations we perform according to the definitions of the normal and normal scenario.
+We also compare our normal scenario with the reverse scenario and evaluate where these executions differ. We do so in @sec:evaluate-reverse-scenario, where we verify that the first difference between the normal and reverse scenario matches the state calculations we perform according to the definitions of the normal and normal scenario.
 
 
 == Overall evaluation <sec:overall-evaluation>
@@ -1084,7 +1091,7 @@ We mined TOD candidates in the 1,000 blocks starting at 11,299,000, which result
 
 We compare the TOD candidates, TODs, and TOD attacks we found against the ground truth in @tab:eval-overall. Our mining procedure marks 115 of the attacks in the ground truth as TOD candidates. From the 115 TOD candidates, 95 are detected as TOD, and of those, 85 are marked as an attack.
 
-When mining the TOD candidates we miss 98% of the ground truth attacks. The following steps miss another 26% of the attacks. We evaluate the reasons for these in the following sections, where we evaluate each component individually.
+When mining the TOD candidates we drop 98% of the ground truth attacks. The following steps drop another 26% of the attacks. We evaluate the reasons for this in the following sections, where we evaluate each component individually.
 
 This section focuses on the 195 attacks we found that are not part of the ground truth.
 
@@ -1099,7 +1106,7 @@ This section focuses on the 195 attacks we found that are not part of the ground
   ),
   caption: flex-caption(
     [Comparison of results with the 5,601 attacks from the ground truth. The first row shows how many of the 5,601 attacks in the ground truth are also found by our analysis at the individual stages. The second row shows the results our method found, which are not in the ground truth.],
-    [Comparison of results with the baseline.],
+    [Comparison of results with the ground truth.],
   ),
   kind: table,
 )<tab:eval-overall>
@@ -1122,7 +1129,7 @@ In all 19 cases, the manual evaluation shows that the attacker gain and victim l
 
 ==== Definition shortcomings <sec:attacker-gain-victim-loss-shortcomings>
 
-Firstly, we assumed that the transaction value is independent of the transaction order, because it is part of the transaction itself. However, when a transaction is reverted, the value is not sent to the receiver. Therefore, the transfer of the transaction value may depend on the transaction order. If we considered the transaction value in the calculation, six of the 19 attacks would be false positives.
+Firstly, we argued that the transaction value is independent of the transaction order, because it is part of the transaction itself. However, when a transaction is reverted, the value is not sent to the receiver. Therefore, the transfer of the transaction value may depend on the transaction order. If we considered the transaction value in the calculation, six of the 19 attacks would be false positives.
 
 Secondly, in five cases, we have a loss for the sender of $T_A$ (the attacker's EOA), while we have only gains for the recipient of $T_A$ (considered the attacker's bot in this case). Our definition considers the attacker gain fulfilled for the attacker's bot and ignores the loss of the attacker's EOA. If we considered them together, we may have different results in such cases.
 
@@ -1134,32 +1141,32 @@ We find that 626 transaction pairs fulfill the TOD Transfer characteristic, 244 
 
 === Manual evaluation of TOD Transfer
 
-We take a sample of 20 transaction pairs that fulfill TOD Transfer. Our tool outputs the locations at which there is a different amount of calls in the normal and reverse scenario. For each sample, we verify the first location it shows for $T_A$ and $T_B$. To do so, we manually check the execution traces of the normal and reverse scenario for this location and extract the relevant calls. We further verify that these calls match the calls in the normal scenario are equal to those on the blockchain.
+We take a sample of 20 transaction pairs that fulfill TOD Transfer. Our tool outputs the locations at which there is a different amount of calls in the normal and reverse scenario. For each sample, we verify the first call location it shows for $T_A$ and $T_B$. To do so, we manually check the execution traces of the normal and reverse scenario for this location and extract the relevant calls. We further verify that these calls match the calls in the normal scenario are equal to those on the blockchain.
 
 We find that in all cases, the TOD transfer property holds for $T_B$, and only in one case it holds additionally for $T_A$.
 
-In 9 of the cases, $T_B$ makes a `CALL` in the normal scenario and is reverted in the reverse scenario. As our definition only considers calls that are not reverted, these fulfill TOD Transfer.
+In 9 of the cases, $T_B$ makes a `CALL` in the normal scenario that is reverted in the reverse scenario. As our definition only considers calls that are not reverted, these fulfill TOD Transfer.
 
 In 8 further cases, $T_B$ makes a `CALL` in the normal scenario but makes no `CALL` at this location in the reverse scenario. In the 3 remaining cases, $T_B$ makes a `CALL` in the reverse scenario but makes no `CALL` in the normal scenario at this location.
 
-We also observe that the locations are often the same. For instance, in five of the cases, the location we analyze is the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`. When inspecting all 626 transaction pairs that fulfill TOD Transfer we find this location 86 times. Considering that we limit similar collisions to a maximum of 10, we often have different collisions causing TOD while affecting the same functionality.
+We also observe that the locations are often the same. For instance, in five of the cases, the location we analyze is the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`. When inspecting all 626 transaction pairs that fulfill TOD Transfer we find this location 86 times. Considering that we limit similar collisions to a maximum of 10, this implies that different collisions affect the same functionality.
 
 === Manual evaluation of TOD Amount
 
-We take a sample of 20 transaction pairs that fulfill TOD Amount. Similar to the TOD Transfer evaluation, we manually verify the first location. For TOD Amount, we verify that in both scenarios there exists a call at this location, but with different values.
+We take a sample of 20 transaction pairs that fulfill TOD Amount. Similar to the TOD Transfer evaluation, we manually verify the first location reported by our tool. For TOD Amount, we verify that in both scenarios there exists a call at this location, but with different values.
 
 The evaluation shows that the property holds in all cases for $T_B$, and in 3 cases also for $T_A$. In 12 cases, the amount of Ether sent is increased in the reverse scenario, and in 11 cases, it is decreased.
 
-For this sample, the location of the call is 16 times at the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`.
+Again, we observe many calls happening at the same location. Of the 20 call locations we analyze, the location is 16 times at the address `0x7a250d5630b4cf539739df2c5dacb4c659f2488d` at program counter `15784`.
 
 
 === Manual evaluation of TOD Receiver
 
-We evaluate the transaction pair for TOD Receiver similar to how we evaluate TOD Amount, except that we now verify whether the receiver of the Ether transfer changed. Our evaluation shows that this is indeed the case. By inspecting the traces, we can see that in the normal scenario the receiver address is loaded from a different storage slot than in the normal scenario.
+We evaluate the one transaction pair we found for TOD Receiver similar to how we evaluate TOD Amount, except that we now verify whether the receiver of the Ether transfer changed. Our evaluation shows that this is indeed the case. By inspecting the traces, we can see that in the normal scenario the receiver address is loaded from a different storage slot than in the normal scenario, resulting in different recipients of the Ether transfer.
 
 === Manual evaluation of ERC-20 multiple withdrawal
 
-We evaluate all 15 transaction pairs where our tool reports an ERC-20 multiple withdrawal attack. Our tool outputs pairs of `Transfer` and `Approval` events that should fulfill the definition. We manually evaluate the first of these pairs by verifying that the `Transfer` event exists in $T_A$ in the normal scenario and the `Approval` event exists in $T_B$ in the normal and reverse scenario. We further verify that the logs in the normal scenario are equal to those on the blockchain.
+We evaluate all 15 transaction pairs where our tool reports an ERC-20 multiple withdrawal attack. Our tool outputs pairs of `Transfer` and `Approval` events that should fulfill the definition. For each case, we manually evaluate the first of these pairs by verifying that the `Transfer` event exists in $T_A$ in the normal scenario and the `Approval` event exists in $T_B$ in the normal and reverse scenario. We further verify that the logs in the normal scenario are equal to those on the blockchain.
 
 While we confirm that all of them fulfill the definition we provide for the ERC-20 multiple withdrawal attack, none of them actually is an attack.
 
@@ -1171,15 +1178,15 @@ Moreover, in 14 cases $T_A$ contains an `Approval` event for the tokens that are
 
 == Evaluation of TOD candidate mining
 
-In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates and if the TOD candidate filters work as intended.
+In this section, we analyze why 98% of the attacks in the ground truth are not reported as TOD candidates, and whether the TOD candidate filters work as intended.
 
 We rerun the TOD candidate mining and count the number of attacks from the ground truth that are in the TOD candidates before and after each filter is applied. Therefore, we know how many of the attacks were removed by which filter.
 
 In @tab:eval-mining, we see that most filters do not filter out any attack from the ground truth. However, they still filter out 500,141 other TOD candidates, thus significantly reducing the search space for further analysis without affecting the attacks we can find.
 
-Furthermore, @tab:eval-mining shows that only one attack is filtered because there is no collision between the accessed and modified states of $T_A$ and $T_B$. This TOD candidate is filtered, because the second transaction of the filtered TOD candidate is part of block 11,300,000, which is not part of the blocks we analyze#footnote[In @zhang_combatting_2023, it says that this dataset contains 1,000 blocks. Block 11,300,000 would be the $1,001$-th block.].
+Furthermore, @tab:eval-mining shows that only one attack is filtered because there is no collision between the accessed and modified states of $T_A$ and $T_B$. This TOD candidate is filtered, because the second transaction of the filtered TOD candidate is part of block 11,300,000, which is not part of the blocks we analyze#footnote[In @zhang_combatting_2023, the dataset is described as originating from an analysis of 1,000 blocks. Block 11,300,000 would be the $1,001$-th block, thus we assume an off-by-one error.].
 
-The filters "Same-value collision" and "Indirect dependency" remove 4,275 TOD candidates with potential indirect dependencies. Finally, our deduplication filters remove another 1,210 TOD candidates. In the following subsections, we evaluate whether these three filters fulfill their intention.
+The filters "Same-value collision" and "Indirect dependency" remove 4,275 TOD candidates with potential indirect dependencies. Finally, our deduplication filters remove another 1,210 TOD candidates. In the following subsections, we evaluate whether these filters fulfill their intention.
 
 #figure(
   table(
@@ -1217,16 +1224,15 @@ The filters "Same-value collision" and "Indirect dependency" remove 4,275 TOD ca
 
 === Evaluation of indirect dependency filters
 
-The "Same-value collision" filter and the "Indirect dependency" filter both target TOD candidates with indirect dependencies, as these may lead to unexpected analysis results (see @sec:weakness-indirect-dependencies).
+The "Same-value collision" and "Indirect dependency" filters both target TOD candidates with indirect dependencies, as these may lead to unexpected analysis results (see @sec:weakness-indirect-dependencies).
 
 We evaluate, for how many of the removed attack TOD candidates $(T_A, T_B)$, there exists an intermediary transaction $T_X$, such that both $(T_A, T_X)$ and $(T_X, T_B)$ are TOD. In such cases, any reordering that moves $T_A$ after $T_X$ or $T_X$ after $T_B$ may influence how $T_A$ and $T_B$ execute. While our filters also remove indirect dependencies which require more than one intermediary transaction (e.g. $T_A -> T_X_1 -> T_X_2 -> T_B$), we limit our evaluation to only one intermediary transaction for performance reasons.
 
 We rerun the TOD candidate mining until the "Indirect dependency" filter would be executed. For 1,720 of the 4,275 TOD candidates $(T_A, T_B)$ we evaluate, we find another two TOD candidates $(T_A, T_X)$ and $(T_X, T_B)$. These TOD candidates show a potential indirect dependency of $(T_A, T_B)$ with the one intermediary transaction $T_X$. We do not evaluate the remaining 2,555 TOD candidates, which either have an indirect dependency with multiple intermediary transactions, or have an indirect dependency where one of the TOD candidates $(T_A, T_X)$ or $(T_X, T_B)$ has already been filtered.
 
-We run or TOD detection on the 1,720 $(T_A, T_X)$ TOD candidates and the 1,720 $(T_X, T_B)$ TOD candidates. We find that in 1,319 cases both $(T_A, T_X)$ and $(T_X, T_B)$ being TOD. In 159 cases at, least one analysis failed. In the remaining 242 cases, at least one of the TOD candidates $(T_A, T_X)$ or $(T_X, T_B)$ is not TOD.
+We run or TOD detection on the 1,720 $(T_A, T_X)$ TOD candidates and the 1,720 $(T_X, T_B)$ TOD candidates. We find that in 1,319 cases both $(T_A, T_X)$ and $(T_X, T_B)$ being TOD. In 159 cases, at least one analysis failed. In the remaining 242 cases, at least one of the TOD candidates $(T_A, T_X)$ or $(T_X, T_B)$ is confirmed not to be TOD.
 
-In summary, we show that in at least 1,319 of the 4,275 cases where we filtered out a an attack of the ground truth, there exists a transaction that is TOD with both $T_A$ and $T_B$ of this attack.
-
+In summary, we show that in at least 1,319 of the 4,275 cases where we filtered out a an attack of the ground truth, there exists a transaction that is TOD with both $T_A$ and $T_B$ of this attack and thus potentially interferes with the TOD simulation.
 
 === Evaluation of duplicate limits
 
@@ -1238,21 +1244,21 @@ $
   colls(T_A, T_B) subset.eq union.big_(0 <= i <= n) colls(T_C_i, T_D_i)
 $
 
-We only consider collisions that remain after applying all previous filters. Therefore, we do not include nonce and code collisions, and balance collisions for block validators.
+For this analysis, we only consider collisions that remain after applying all previous filters.
 
 From the 1,210 attacks that were removed by duplicate limits, we have 703 that are covered by the remaining attacks. Thus, if we combine the collisions of the 115 remaining attacks, we have the same collisions as if we included these 703 covered attacks. From the 703 covered attacks, we can match at least#footnote[We use a naive algorithm to detect collision coverage, which does not minimize the required attacks for coverage. Thus, the number of attacks covered by a single other attack is a lower bound.] 504 removed attacks $(T_A, T_B)$ with a remaining attack $(T_C, T_D)$, such that $colls(T_A, T_B) subset.eq colls(T_C, T_D)$. Thus, in 504 cases a removed attack is covered by exactly one remaining attack.
 
-We notice that attacks are concentrated around the same collisions. When we take the top three attacks that were not removed by duplicate limits, we already cover 373 of the 1,210 attacks we removed.
+We also notice that attacks are concentrated around the same collisions. When we take the top three attacks that were not removed by duplicate limits, we already cover 373 of the 1,210 attacks we removed.
 
-Our calculations of coverages are lower limits, as we only consider the 115 remaining attacks from the ground truth but not the 195 attacks we find that are not in the ground truth. However, all attacks we find are subject to the duplicate limit, therefore some ground truth attacks may have been removed while keeping an attack not in the ground truth that has similar collisions.
+Our calculations of coverages are lower limits, as we only consider the 115 remaining attacks from the ground truth but not the 195 attacks we find that are not in the ground truth. All attacks we find are subject to the duplicate limit, therefore some ground truth attacks may have been removed while keeping an attack not in the ground truth that has similar collisions.
 
 == Evaluation of TOD detection
 
 To evaluate our TOD detection method, we run it on the attacks from the ground truth.
 
-From the 5,601 attacks, our method finds that 4,827 are TOD and 4,857 approximately TOD. We do not compare the TOD detection with the approximation in detail, as we already did so in @sec:tod-detection. However, this result shows that for the ground truth attacks we miss less attacks with the approximation than with the exact TOD definition.
+From the 5,601 attacks, our method finds that 4,827 are TOD and 4,857 approximately TOD. We do not manually compare the differences of the TOD detection with the approximation, as we already did so in @sec:tod-detection. However, that for the attacks from the ground truth one can use the TOD approximation without loosing attacks.
 
-There are 774 attacks that our method misses. For 20 of those an error occurred while analyzing for TOD#footnote[18 of them are caused by a bug in Erigon, where it reports negative balances for accounts for some transactions (#link("https://github.com/erigontech/erigon/issues/9531")[fixed in v2.60.3]). 2 of them were caused by connection errors.] and for 296 we detected execution inaccuracies (see @sec:execution-inaccuracy) and stopped the analysis.
+There are 774 attacks that our method misses. For 20 of those an error occurred while analyzing for TOD#footnote[18 of the errors are caused by a bug in Erigon, where it reports negative balances for accounts for some transactions (#link("https://github.com/erigontech/erigon/issues/9531")[fixed in v2.60.3]). 2 of them were caused by connection errors.] and for 296 we detected execution inaccuracies (see @sec:execution-inaccuracy) and stopped the analysis.
 
 From the remaining 458 attacks, we find that most have the metadata "out of gas" in the ground truth dataset. Attacks with this "out of gas" label account for 97.6% of the attacks we do not find, while they only account for 19.1% of the 5,601 attacks in the ground truth.
 
@@ -1260,21 +1266,21 @@ From the remaining 458 attacks, we find that most have the metadata "out of gas"
 
 According to the dataset description, this label refers to a #emph[gas estimation griefing attack], which is described in @zhang_combatting_2023. The authors consider such an attack to occur when $T_B$ runs out of gas in the normal scenario but not in the reverse scenario.
 
-We manually inspect a sample of 20 attacks and find that in 12 attacks, $T_B$ is indeed reverted according to Etherscan. In these cases, our analysis shows that $T_B$ is reverted in both scenarios. As $T_B$ also revertes in the reverse scenario, our analysis does not confirm the gas estimation griefing attack.
+We manually inspect a sample of 20 attacks and find that in 12 attacks, $T_B$ is indeed reverted according to Etherscan. In these cases, our simulation method further shows that $T_B$ is reverted in both scenarios. As $T_B$ also revertes in the reverse scenario, these cases are no gas estimation griefing attacks according to our simulation.
 
-In the remaining 8 cases, our method reports no reverts in either scenario. For one case, Etherscan reports that $T_B$ had an internal out of gas error, which was caught without reverting the whole transaction. Therefore, we do not consider these gas estimation griefing attacks.
+In the remaining 8 cases, our method reports no reverts in either scenario. For one case, Etherscan reports that $T_B$ had an internal out of gas error, which was caught without reverting the whole transaction. Therefore, at least the 7 cases where $T_B$ did not revert in the normal scenario are no gas estimation griefing attacks.
 
-Overall, it appears that attacks with this label do not necessarily fulfill the attacker gain and victim loss property. The dataset usually describes the profits of an attacker and losses of a victim in each attack. However, 347 of the 1,043 attacks with the "out of gas" label do not contain a description of the victim losses. On the contrary, this description exists for all attacks without the "out of gas" label.
+As such, it is unclear if this label classifies these attacks as gas estimation griefing attacks. Furthermore, it appears that attacks with this label do not necessarily fulfill the attacker gain and victim loss property. The dataset usually describes the profits of an attacker and losses of a victim in each attack. However, 347 of the 1,043 attacks with the "out of gas" label do not contain a description of the victim losses. However, this description exists for all attacks without the "out of gas" label. In summary, it is unclear how we should interpret these attacks from the ground truth and thus we ignore them from further analysis.
 
 === Manual evaluation of attacks not labeled "out of gas"
 
 We manually check the remaining 11 attacks that our method does not report as TOD.
 
-We check if these are caused by bugs in the archive node by rerunning the analysis with a Reth archive node. In two cases, using Reth we report them as TOD because of the same balance changes as reported in the ground truth, showing the inaccuracies from @sec:execution-inaccuracy.
+We check if these are caused by bugs in the RPC method implementation by rerunning the analysis with a Reth archive node, in addition to the Erigon archive node we use for our experiments. In two cases, using Reth we report them as TOD because of the same balance changes as reported in the ground truth, showing the inaccuracies from @sec:execution-inaccuracy.
 
-Furthermore, we compare the traces of the instruction executions between the scenarios. For 8 attacks, the traces in the normal scenario are equal to those in the reverse scenario. By inspecting the state changes in Etherscan, we also rule out write-write TODs, where both transactions write to the same storage slot. As such, we consider these as not TOD.
+Furthermore, we compare the traces of the instruction executions between the scenarios. For 8 attacks, the traces in the normal scenario are equal to those in the reverse scenario, therefeore no write-read or read-write TOD has occurred. By inspecting the state changes in Etherscan, we also rule out write-write TODs, where both transactions write to the same storage slot. As such, these are indeed TOD accocrding to the traces of our simulation.
 
-Finally, for one attack $T_B$ reverts in both scenarios. The ground truth dataset reports token changes in the reverse scenario, therefore our execution must differ from theirs.
+Finally, for one attack $T_B$ reverts in both scenarios. The ground truth dataset reports token changes in the reverse scenario, therefore our execution must differ from theirs, which we do not further investigate.
 
 
 == Evaluation of TOD attack analysis
@@ -1287,9 +1293,9 @@ From these 907 cases, 850 are labeled as "out of gas" in the ground truth. As di
 
 ==== Evaluation of profit calculations
 
-We verify that the transaction pair does not fulfill the attacker gain and victim loss property according to the execution traces of our normal and reverse scenarios. In each case, manually parsing the calls and logs from the execution traces disproves the property.
+We verify that the transaction pair does not fulfill the attacker gain and victim loss property according to the execution traces of our normal and reverse scenarios. In each case, we disprove the property by manually parsing the calls and logs and calculating the profits and losses.
 
-In five cases, there is a victim gain according to our traces. In three cases, we calculate an attacker loss. In the two other cases, the traces of the attacker's transaction behave identical in the normal and reverse scenarios. We explain one of these cases more in detail in @app:analysis-TOD.
+In five cases, there is a victim gain according to our traces. In three cases, we calculate an attacker loss. In the two other cases, the traces of the attacker's transaction behave identical in the normal and reverse scenarios. We show that one of these cases is not TOD in @app:analysis-TOD.
 
 ==== Evaluation of reverse scenario <sec:evaluate-reverse-scenario>
 
@@ -1299,9 +1305,9 @@ For each case, we pick one of the transactions. For this transaction, we compare
 
 In one case, we do not find any difference, as the transactions are not TOD. In the other nine cases, the first difference is after executing the `SLOAD` instruction, which loads a value from the storage.
 
-When we analyze the execution of the attacker's transaction ($T_A$), we execute it on the states $sigma$ and $sigma + Delta'_T_B$. Because `SLOAD` returns different values for $sigma$ and $sigma + Delta'_T_B$, the accessed storage slot should be modified by $Delta'_T_B$. We verify that in the normal scenario, our trace shows the value this storage slot had before executing $T_A$ according to Etherscan. For the reverse scenario, we compare it against the last `SSTORE` of the execution of $T_B$ in the reverse scenario, i.e. the value that $Delta'_T_B$ changes it to.
+When we analyze the execution of the attacker's transaction ($T_A$), we execute it on the states $sigma$ and $sigma + Delta'_T_B$. Because we observer that `SLOAD` returns different values for $sigma$ and $sigma + Delta'_T_B$, the accessed storage slot should be modified by $Delta'_T_B$. We verify that in the normal scenario, the result of the `SLOAD` is equal to the value this storage slot had before executing $T_A$ according to Etherscan. For the reverse scenario, we compare it against the last `SSTORE` of the execution of $T_B$ in the reverse scenario, i.e. the value that $Delta'_T_B$ changes it to.
 
-We approach the verification of the accessed storage values of $T_B$ similarly. For $T_B$ we use the states $sigma_X_n$ for the normal scenario and $sigma_X_n - Delta_T_A$ for the reverse scenario. We compare the accessed value in the normal scenario with the value it had before executing $T_B$ according to Etherscan. For the reverse scenario, we compare it with the value it had before executing $T_A$ according to Etherscan. We notice that in all these cases, $T_A$ wrote a value to this storage slot that is different from the one $T_B$ reads in the normal scenario. Therefore, there must be intermediary transactions that modify this storage value, possibly causing an indirect dependency.
+We approach the verification of the accessed storage values of $T_B$ similarly. For $T_B$ we use the states $sigma_X_n$ for the normal scenario and $sigma_X_n - Delta_T_A$ for the reverse scenario. We compare the result of the `SLOAD` in the normal scenario with the value it had before executing $T_B$ according to Etherscan. For the reverse scenario, we compare it with the value it had before executing $T_A$ according to Etherscan. We notice that in all these cases, $T_A$ wrote a value to this storage slot that is different from the one that $T_B$ reads in the normal scenario. Therefore, there must be intermediary transactions that changed this storage value between $T_A$ and $T_B$, possibly causing an indirect dependency.
 
 In summary, we verify that at least the first difference between the normal and reverse scenarios is in accordance with the definition of the normal and reverse scenarios.
 
@@ -1329,9 +1335,9 @@ The evaluation of the 1,000 blocks took a total of 75 minutes, averaging to 4.5 
 
 For the TOD candidate mining, we spent 41 minutes fetching the state changes of the 1,000 blocks and inserting them into a database, another 13 minutes filtering the TOD candidates, and 3 minutes for other tasks.
 
-For the TOD detection and TOD attack analysis, we fetch the state changes and transactions and store them in memory for faster access. Because the state changes are already in our RPC cache, these two steps combined only take 5 minutes.
+For the TOD detection and TOD attack analysis, we fetch the state changes and transactions and store them in memory for faster access. Because the state changes are already in our RPC cache, these two steps combined only took 5 minutes.
 
-After fetching the state changes and transactions, we run the TOD detection and TOD attack analysis using 16 threads, enabling us to make multiple RPC requests in parallel. To check the 14,500 TOD candidates for TOD it took 11 minutes, an average of 44 milliseconds per TOD candidate. The attack analysis of the 2,959 TOD transaction pairs took 4 minutes, averaging to 77 milliseconds per analysis.
+After fetching the state changes and transactions, we ran the TOD detection and TOD attack analysis using 16 threads, enabling us to make multiple RPC requests in parallel. To check the 14,500 TOD candidates for TOD it took 11 minutes, an average of 44 milliseconds per TOD candidate. The attack analysis of the 2,959 TOD transaction pairs took 4 minutes, averaging to 77 milliseconds per analysis.
 
 Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block, while they report an average of 7.5 seconds per block. However, we cannot directly compare this, as their hardware specifications differ from our setup and in our case the transaction execution is outsourced to an archive node of which we do not know the hardware specifications. Moreover, @zhang_combatting_2023 only reports an average for their whole analysis, and it is not clear if e.g. the vulnerability localization performed in this work is included in this time measurement.
 
@@ -1340,7 +1346,7 @@ Compared with @zhang_combatting_2023, our analysis took 4.5 seconds per block, w
 
 This thesis proposes a method to simulate transaction order dependencies. We precisely define this simulation process and discuss its advantages and disadvantages. Our evaluation shows that it can be used to detect TOD and several attack characteristics, finding more than 80% of the attacks from a previous work.
 
-Nonetheless, we note that our simulation method and those of two related studies have drawbacks that can lead to analysis results that do not match the execution that happened on the blockchain or are distorted by the influence of intermediary transactions. The method by @torres_frontrunner_2021 removes intermediary transactions for the simulation. On the one hand, this may create results that differ from the blockchain even in the normal transaction order. On the other hand, the different orderings can be compared without the potential influence of intermediary transactions. The methods by @zhang_combatting_2023 and us produce results that are equal to the blockchain in the normal order, but can suffer influences from intermediary transactions in the reverse order.
+Nonetheless, we note that our simulation method and the methods of two related studies have drawbacks that can lead to analysis results that do not match the execution that happened on the blockchain or are distorted by the influence of intermediary transactions. The method by @torres_frontrunner_2021 removes intermediary transactions for the simulation. On the downside, this may create results that differ from the blockchain even in the normal transaction order. On the upside, the different orderings can then be compared without the potential influence of intermediary transactions. The methods by @zhang_combatting_2023 and us produce results that are equal to the blockchain in the normal order, but can suffer influences from intermediary transactions in the reverse order.
 
 We discuss when influences from intermediary transactions can occur with our method, and thus, we are able to avoid such cases. However, future work may continue to reduce the influence of intermediary transactions on TOD simulations or analyze the tradeoffs between existing methods.
 
@@ -1351,7 +1357,7 @@ We discuss when influences from intermediary transactions can occur with our met
 
 The program used to run the experiments is available at https://github.com/TOD-theses/t_race. It can be run with Python or Docker and requires an archive node that supports the debug namespace, including JS tracing for the attack analysis. Refer to the documentation on the repository for more details on using it.
 
-The TOD candidates deduplication relies on randomness. To allow reproducibility, the program sets a seed for the randomness before executing this deduplication step.
+The TOD candidates deduplication relies on randomness. To allow reproducibility, the program sets a seed for the randomness before executing the randomized deduplication step.
 
 == Data availability <sec:data-availability>
 
@@ -1362,4 +1368,4 @@ The experiment results and evaluation artifacts produced by this thesis are avai
 
 The experiments were performed on Ubuntu 22.04.04, using an AMD Ryzen 5 5500U CPU with 6 cores and 2 threads per core and an SN530 NVMe SSD. We used a 16 GB RAM with an additional 32 GB swap file.
 
-For the RPC requests, we do not use our own archive node, but rely on free services by @nodies_web3_nodate, which uses Erigon 2.59.3 @noauthor_erigon_2024 according to the `web3_clientVersion` RPC method. We used a local cache to prevent repeating slow RPC requests @fuzzland_eth_2024. The cache was initially empty for experiments that measure the running time. In the evaluation, we refer to the usage of a Reth instance for a few TOD checks. We use a public Reth 1.0.4 instance for this @paradigm_reth_nodate.
+For the RPC requests, we did not use our own archive node, but relied on a free service by @nodies_web3_nodate, which uses Erigon 2.59.3 @noauthor_erigon_2024 according to the `web3_clientVersion` RPC method. In the evaluation, we also refer to the usage of a Reth instance for a few TOD checks. We use a public Reth 1.0.4 instance for this @paradigm_reth_nodate. We used a local cache to prevent repeating slow RPC requests @fuzzland_eth_2024. The cache was initially empty for experiments that measure the running time.
