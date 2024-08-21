@@ -4,14 +4,8 @@
 
 /*
 Checklist:
-- [ ] single and double quotes
 - [ ] past vs present
 - [ ] reference after or before dot?
-- [ ] original/adapted -> approximately TOD / TOD (also in appendix)
-
-12pt., maybe more space between lines
-important for references: the medium which published them, conference, year. If available, DOI
-D G Wood -> G Wood
 */
 
 = Introduction
@@ -862,7 +856,7 @@ In @tab:experiment_check_definition, we see the results for both definitions. Fr
 
 With both definitions, for 29% of the TOD candidates, $T_B$ fails because of insufficient funds to cover the transaction fee when it is executed without the state changes by $T_A$. This can happen when $T_A$ transfers Ether to the sender of $T_B$, and $T_B$ has less balance than the transaction fee without this transfer. Furthermore, if the execution of $T_B$ consumes more gas without the changes of $T_A$, it needs to pay a higher transaction fee which can also lead to insufficient funds. In both cases, the existence of $T_A$ enables the execution of $T_B$, therefore we do not consider these to be TOD attacks and ignore them from further analysis.
 
-Finally, one error occurred with the original definition#todo[original definition] which did not occur with the other definition. However, this error was not reproducible, potentially being a temporary fault with the RPC requests.
+Finally, one error occurred when analyzing for the TOD approximation which did not occur with the exact definition. However, this error is not reproducible, potentially being a temporary fault with the RPC requests.
 
 #figure(
   table(
@@ -893,7 +887,7 @@ Further 10 TOD candidates are TOD but not approximately TOD, i.e. ${Delta_T_A, D
 
 A weakness of this comparison is that we use TOD candidates that are tailored for the TOD approximation and therefore TOD candidates that are TOD may be underrepresented. This could be why we found 34 TOD candidates that are approximately TOD but not TOD, while we only found 10 TOD candidates that are TOD but not approximately TOD.
 
-Nonetheless, of the 1,628 TOD candidates labeled as TOD or not TOD using our original definition, we obtained the same label with the adapted definition for 96.4% of these TOD candidates. In the case that TOD transaction pairs are underrepresented in our sample, this still demonstrates that most candidates labeled as approximately TOD are also TOD.
+Nonetheless, of the 1,628 TOD candidates labeled as TOD or not TOD according to our approximation, we obtained the same label with the exact TOD definition for 96.4% of these TOD candidates. In the case that TOD transaction pairs are underrepresented in our sample, this still demonstrates that most candidates labeled as approximately TOD are also TOD.
 
 = TOD attack characteristics <sec:tod-attack-characteristics>
 

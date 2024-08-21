@@ -8,7 +8,7 @@ No generative AI tools where used in the process of researching and writing this
 
 == Analysis of definition differences <app:analysis-of-definition-differences>
 
-Here, we present one example for @sec:analysis-of-differences, where the original definition shows a TOD while the adapted definition shows no TOD.
+Here, we present one example for @sec:analysis-of-differences that is approximately TOD but not TOD.
 
 For the following two transactions:
 - $T_A$: `0xa723f53edcae821203572a773b8f1b5cf5c008a734794ee2acae771540363f11`
